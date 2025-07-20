@@ -206,7 +206,3 @@ export const config = {
     bodyParser: false,
   },
 };
-
-export const handlers = {
-  "POST /delete-image": POST_delete_image,
-};
