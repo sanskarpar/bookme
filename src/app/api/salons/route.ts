@@ -190,7 +190,7 @@ export async function POST_delete_image(request: Request) {
     const imageUrl = `/api/salons/image/${imageId}`;
     await db.collection("salons").updateOne(
       { email },
-      { $pull: { imageUrls: imageUrl } }
+      { $pull: { imageUrls: imageUrl } } as any
     );
 
     await client.close();
