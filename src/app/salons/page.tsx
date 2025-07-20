@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { FiMapPin, FiPhone, FiScissors, FiStar, FiFilter, FiX } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -39,7 +39,7 @@ const fetchServices = async (uids: string[]) => {
   return data.services || [];
 };
 
-export default function SalonsPage() {
+function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
   const [salons, setSalons] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +53,6 @@ export default function SalonsPage() {
   const [initialLoad, setInitialLoad] = useState(true);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -506,4 +505,20 @@ export default function SalonsPage() {
       </div>
     </main>
   );
+}
+
+// Main page component
+export default function SalonsPage() {
+  // Suspense boundary for useSearchParams
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 font-sans p-0"><Navbar /><div className="max-w-6xl mx-auto py-4 px-2"><p>Laden...</p></div></div>}>
+      <SearchParamsWrapper />
+    </Suspense>
+  );
+}
+
+// Wrapper to use useSearchParams inside Suspense
+function SearchParamsWrapper() {
+  const searchParams = useSearchParams();
+  return <SalonsContent searchParams={searchParams} />;
 }
