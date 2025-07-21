@@ -3,10 +3,11 @@ import React, { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
+import { useSearchParams } from "next/navigation";
 import { 
   FiTrendingUp, FiUsers, FiClock, FiDollarSign, FiCalendar, 
   FiScissors, FiStar, FiTarget, FiBarChart, FiPieChart,
-  FiActivity, FiUserCheck, FiTrendingDown, FiAlertCircle
+  FiActivity, FiUserCheck, FiTrendingDown, FiAlertCircle, FiArrowLeft
 } from "react-icons/fi";
 
 const firebaseConfig = {
@@ -51,6 +52,10 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [timeRange, setTimeRange] = useState("30"); // days
   const [selectedView, setSelectedView] = useState("overview");
+  const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
+  
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -58,28 +63,48 @@ export default function AnalyticsPage() {
       if (firebaseUser?.email) {
         setLoading(true);
         try {
-          // Fetch user role
-          const userRes = await fetch(`/api/users?email=${encodeURIComponent(firebaseUser.email)}`);
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            const role = typeof userData.role === "string"
-              ? userData.role.trim().toLowerCase()
-              : null;
-            setUserRole(role);
+          // Check if this is system admin viewing another salon's analytics
+          const salonUidParam = searchParams?.get('salonUid');
+          const isSystemUser = firebaseUser.email === "system@gmail.com";
+          setIsSystemAdmin(isSystemUser);
+          
+          if (salonUidParam && isSystemUser) {
+            // System admin viewing specific salon analytics
+            setViewingSalonUid(salonUidParam);
+            setUserRole("system");
+            
+            // Fetch the specific salon data
+            const salonRes = await fetch(`/api/salons?uid=${encodeURIComponent(salonUidParam)}`);
+            if (salonRes.ok) {
+              const salonData = await salonRes.json();
+              setSalon(salonData.salon);
+              await fetchAnalytics(salonUidParam);
+            }
           } else {
-            setUserRole(null);
-          }
-          
-          // Fetch salon info
-          const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
-          if (!res.ok) throw new Error("Salon not found");
-          const data = await res.json();
-          
-          const salonData = data.salon || data;
-          setSalon(salonData);
-          
-          if (salonData?.uid) {
-            await fetchAnalytics(salonData.uid);
+            // Normal salon user or system admin viewing their own analytics
+            // Fetch user role
+            const userRes = await fetch(`/api/users?email=${encodeURIComponent(firebaseUser.email)}`);
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              const role = typeof userData.role === "string"
+                ? userData.role.trim().toLowerCase()
+                : null;
+              setUserRole(role);
+            } else {
+              setUserRole(null);
+            }
+            
+            // Fetch salon info
+            const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
+            if (!res.ok) throw new Error("Salon not found");
+            const data = await res.json();
+            
+            const salonData = data.salon || data;
+            setSalon(salonData);
+            
+            if (salonData?.uid) {
+              await fetchAnalytics(salonData.uid);
+            }
           }
           
         } catch (err) {
@@ -92,7 +117,7 @@ export default function AnalyticsPage() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (salon?.uid) {
@@ -352,7 +377,7 @@ export default function AnalyticsPage() {
     return <AuthPrompt />;
   }
 
-  if (userRole && userRole !== "salon") {
+  if (userRole && userRole !== "salon" && !isSystemAdmin) {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
         <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
@@ -370,11 +395,25 @@ export default function AnalyticsPage() {
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
+            {viewingSalonUid && isSystemAdmin && (
+              <div className="mb-4">
+                <button
+                  onClick={() => window.close()}
+                  className="flex items-center text-[#5C6F68] hover:text-[#4a5a54] font-medium"
+                >
+                  <FiArrowLeft className="mr-2" /> Zurück zur Admin-Übersicht
+                </button>
+              </div>
+            )}
             <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
-              <FiBarChart className="mr-3 text-[#5C6F68]" /> Analyse-Dashboard
+              <FiBarChart className="mr-3 text-[#5C6F68]" /> 
+              {viewingSalonUid && isSystemAdmin ? "System-Analytics" : "Analyse-Dashboard"}
             </h1>
             <p className="text-gray-600">
-              Umfassende Einblicke und Analysen für {salon?.name}
+              {viewingSalonUid && isSystemAdmin 
+                ? `Analytics für ${salon?.name || 'Unbekannter Salon'} (System-Ansicht)`
+                : `Umfassende Einblicke und Analysen für ${salon?.name}`
+              }
             </p>
           </div>
 

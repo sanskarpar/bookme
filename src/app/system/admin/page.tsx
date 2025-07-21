@@ -38,6 +38,8 @@ export default function AdminDashboard() {
   const [deleteStatus, setDeleteStatus] = useState<string | null>(null);
   const [salonSearch, setSalonSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
+  const [showSalonList, setShowSalonList] = useState(false);
+  const [allSalons, setAllSalons] = useState<any[]>([]);
 
   useEffect(() => {
     const email = typeof window !== "undefined" ? localStorage.getItem("userEmail") : null;
@@ -57,8 +59,10 @@ export default function AdminDashboard() {
       if (salonsRes.ok) {
         const salonsData = await salonsRes.json();
         setSalons(salonsData.salons || []);
+        setAllSalons(salonsData.salons || []);
       } else {
         setSalons([]);
+        setAllSalons([]);
       }
       
       // Fetch users
@@ -71,6 +75,7 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       setSalons([]);
+      setAllSalons([]);
       setUsers([]);
       console.error("Error fetching data:", error);
     }
@@ -362,6 +367,151 @@ export default function AdminDashboard() {
             {deleteStatus}
           </div>
         )}
+        <h2
+          style={{
+            fontWeight: 600,
+            fontSize: "1.2rem",
+            color: "#000",
+            marginBottom: 16,
+            marginTop: 32,
+          }}
+        >
+          Salon-Verwaltung
+        </h2>
+        <button
+          onClick={() => setShowSalonList(!showSalonList)}
+          style={{
+            background: COLORS.primary,
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "0.75rem 1.5rem",
+            fontWeight: 600,
+            fontSize: "1rem",
+            cursor: "pointer",
+            marginBottom: 16,
+            transition: "background 0.2s",
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = "#4a5a54"}
+          onMouseOut={(e) => e.currentTarget.style.background = COLORS.primary}
+        >
+          {showSalonList ? "Salon-Liste verstecken" : "Alle Salons anzeigen"}
+        </button>
+
+        {showSalonList && (
+          <div style={{
+            background: "#f8f9fa",
+            borderRadius: 8,
+            padding: "1rem",
+            marginBottom: 24,
+            border: `1px solid ${COLORS.primary}20`,
+          }}>
+            <h3 style={{
+              fontWeight: 600,
+              fontSize: "1.1rem",
+              color: "#000",
+              marginBottom: 16,
+            }}>
+              Registrierte Salons ({allSalons.length})
+            </h3>
+            {allSalons.length === 0 ? (
+              <p style={{ color: "#666", fontStyle: "italic" }}>Keine Salons gefunden.</p>
+            ) : (
+              <div style={{ display: "grid", gap: "12px" }}>
+                {allSalons.map((salon, idx) => (
+                  <div
+                    key={salon._id || idx}
+                    style={{
+                      background: "#fff",
+                      borderRadius: 8,
+                      padding: "1rem",
+                      border: `1px solid ${COLORS.primary}15`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: "12px",
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: "200px" }}>
+                      <h4 style={{
+                        fontWeight: 600,
+                        color: "#000",
+                        marginBottom: 4,
+                        fontSize: "1rem",
+                      }}>
+                        {salon.name || "Unbekannter Salon"}
+                      </h4>
+                      <p style={{
+                        color: "#666",
+                        fontSize: "0.9rem",
+                        marginBottom: 2,
+                      }}>
+                        📧 {salon.email || "Keine E-Mail"}
+                      </p>
+                      <p style={{
+                        color: "#666",
+                        fontSize: "0.9rem",
+                        marginBottom: 2,
+                      }}>
+                        📍 {salon.location || "Kein Standort"}
+                      </p>
+                      <p style={{
+                        color: "#666",
+                        fontSize: "0.9rem",
+                      }}>
+                        📞 {salon.contact || "Kein Kontakt"}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                      <button
+                        onClick={() => window.open(`/admin/analytics?salonUid=${encodeURIComponent(salon.uid || '')}`, '_blank')}
+                        style={{
+                          background: COLORS.highlight,
+                          color: "#000",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "0.5rem 1rem",
+                          fontWeight: 500,
+                          fontSize: "0.9rem",
+                          cursor: "pointer",
+                          transition: "background 0.2s",
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = "#8aa97a"}
+                        onMouseOut={(e) => e.currentTarget.style.background = COLORS.highlight}
+                        disabled={!salon.uid}
+                        title={!salon.uid ? "Keine Analytics verfügbar (UID fehlt)" : "Analytics anzeigen"}
+                      >
+                        📊 Analytics
+                      </button>
+                      <button
+                        onClick={() => window.open(`/salon/${salon.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "")}`, '_blank')}
+                        style={{
+                          background: COLORS.primary,
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "0.5rem 1rem",
+                          fontWeight: 500,
+                          fontSize: "0.9rem",
+                          cursor: "pointer",
+                          transition: "background 0.2s",
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = "#4a5a54"}
+                        onMouseOut={(e) => e.currentTarget.style.background = COLORS.primary}
+                        disabled={!salon.name}
+                        title="Salon-Seite anzeigen"
+                      >
+                        👁️ Ansehen
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <h2
           style={{
             fontWeight: 600,
