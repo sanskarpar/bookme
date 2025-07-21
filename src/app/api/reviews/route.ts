@@ -97,6 +97,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const salonUid = searchParams.get("salonUid");
     const customerUid = searchParams.get("customerUid");
+    const serviceName = searchParams.get("serviceName"); // <-- add this
 
     const client = await MongoClient.connect(uri);
     const db = client.db(dbName);
@@ -105,6 +106,7 @@ export async function GET(req: NextRequest) {
     let query: any = {};
     if (salonUid) query.salonUid = salonUid;
     if (customerUid) query.customerUid = customerUid;
+    if (serviceName) query.serviceName = serviceName; // <-- add this
 
     const reviews = await reviewsCollection.find(query).sort({ createdAt: -1 }).toArray();
     

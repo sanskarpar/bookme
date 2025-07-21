@@ -84,6 +84,8 @@ export default function SalonPage() {
   const [eligibleReviews, setEligibleReviews] = useState<any[]>([]);
   const [selectedReviewableService, setSelectedReviewableService] = useState<any>(null);
   const [detailsService, setDetailsService] = useState<Service | null>(null);
+  const [serviceReviews, setServiceReviews] = useState<Review[]>([]);
+  const [serviceAverageRating, setServiceAverageRating] = useState<number>(0);
   const [selectedDurations, setSelectedDurations] = useState<{ [serviceId: string]: { duration: number; price: number } }>({});
 
   // Load cart from localStorage on mount
@@ -376,6 +378,23 @@ export default function SalonPage() {
     }
   };
 
+  // Fetch reviews for a specific service
+  const openServiceDetails = async (service: Service) => {
+    setDetailsService(service);
+    // Fetch reviews for this service in this salon
+    if (salon?.uid) {
+      try {
+        const res = await fetch(`/api/reviews?salonUid=${salon.uid}&serviceName=${encodeURIComponent(service.name)}`);
+        const data = await res.json();
+        setServiceReviews(data.reviews || []);
+        setServiceAverageRating(data.averageRating || 0);
+      } catch {
+        setServiceReviews([]);
+        setServiceAverageRating(0);
+      }
+    }
+  };
+
   if (loading) return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
       <div className="text-center">
@@ -557,8 +576,14 @@ export default function SalonPage() {
                           <div className="flex flex-col sm:flex-row items-start justify-between mb-2 sm:mb-4 gap-2">
                             <div className="flex-1">
                               <h3 className="text-lg sm:text-xl font-semibold text-[#1F1F1F] mb-1 sm:mb-2">{service.name}</h3>
-                              <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3">{service.description}</p>
                             </div>
+                            <button
+                              className="text-[#5C6F68] hover:text-[#4a5a54] border border-[#E4DED5] rounded px-3 py-1 text-xs sm:text-sm font-medium ml-0 sm:ml-4 mt-2 sm:mt-0"
+                              onClick={() => openServiceDetails(service)}
+                              type="button"
+                            >
+                              Details anzeigen
+                            </button>
                           </div>
                           
                           {/* Duration/Price Options */}
@@ -985,6 +1010,63 @@ export default function SalonPage() {
             <p className="text-gray-600 text-xs sm:text-base">© 2024 Book Your Style. Alle Rechte vorbehalten.</p>
           </div>
         </footer>
+
+        {/* Service Details Popup */}
+        {detailsService && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-2 p-6 relative">
+              <button
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-xl font-bold"
+                onClick={() => setDetailsService(null)}
+                aria-label="Schließen"
+                type="button"
+              >
+                ×
+              </button>
+              <h2 className="text-2xl font-bold text-[#1F1F1F] mb-2">{detailsService.name}</h2>
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-1">
+                  {[...Array(5)].map((_, i) => (
+                    <FiStar key={i} className={`w-5 h-5 ${i < Math.floor(serviceAverageRating) ? 'text-[#9DBE8D] fill-current' : 'text-gray-300'}`} />
+                  ))}
+                  <span className="text-base font-medium text-[#1F1F1F]">
+                    {serviceAverageRating.toFixed(1)} <span className="text-xs text-gray-600">({serviceReviews.length} Bewertungen)</span>
+                  </span>
+                </div>
+                <p className="text-gray-700 text-base">{detailsService.description}</p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-[#1F1F1F] mb-2">Bewertungen für diese Dienstleistung</h3>
+                {serviceReviews.length > 0 ? (
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {serviceReviews.map((review) => (
+                      <div key={review._id} className="border border-[#E4DED5] rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-7 h-7 bg-[#E4DED5] rounded-full flex items-center justify-center">
+                            <FiUser className="w-4 h-4 text-[#5C6F68]" />
+                          </div>
+                          <span className="font-semibold text-sm text-[#1F1F1F]">{review.customerName}</span>
+                          <span className="text-xs text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</span>
+                          <div className="flex ml-2">
+                            {[...Array(5)].map((_, i) => (
+                              <FiStar key={i} className={`w-3 h-3 ${i < review.rating ? 'text-[#9DBE8D] fill-current' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="text-[#1F1F1F] text-sm">{review.comment}</div>
+                        {review.employeeName && (
+                          <div className="text-xs text-gray-600 mt-1">bei {review.employeeName}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-sm">Noch keine Bewertungen für diese Dienstleistung.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

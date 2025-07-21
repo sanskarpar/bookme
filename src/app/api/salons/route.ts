@@ -97,13 +97,16 @@ export async function GET(request: Request) {
 export async function PATCH(req: Request) {
   try {
     const { email, name, imageUrl, imageUrls, description, location, contact, lat, lng, googleMapsAddress, workingDays, holidays, employees } = await req.json();
-    if (!email || !name) {
-      return NextResponse.json({ error: 'Missing email or name' }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: 'Missing email' }, { status: 400 });
     }
     const client = await MongoClient.connect(uri);
     const db = client.db(dbName);
     const salons = db.collection('salons');
-    const updateFields: any = { name };
+    const updateFields: any = {};
+    if (typeof name === "string") {
+      updateFields.name = name;
+    }
     if (Array.isArray(imageUrls)) {
       updateFields.imageUrls = imageUrls;
     } else if (typeof imageUrl === "string") {
@@ -136,10 +139,15 @@ export async function PATCH(req: Request) {
     if (Array.isArray(employees)) {
       updateFields.employees = employees;
     }
+    if (Object.keys(updateFields).length === 0) {
+      await client.close();
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
     const result = await salons.updateOne(
       { email },
       { $set: updateFields }
     );
+    await client.close();
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
     }

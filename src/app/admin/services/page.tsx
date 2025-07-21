@@ -190,10 +190,19 @@ function ServiceForm({ initial, onSave, onCancel, loading }: any) {
       </div>
 
       <div className="flex gap-2 mt-2">
-        <button type="submit" className="btn btn-primary font-inter text-black" disabled={loading}>
+        <button
+          type="submit"
+          className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-semibold px-6 py-2 rounded-lg transition-all duration-200"
+          disabled={loading}
+        >
           {loading ? "Speichern..." : "Speichern"}
         </button>
-        <button type="button" className="btn font-inter text-black" onClick={onCancel} disabled={loading}>
+        <button
+          type="button"
+          className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold px-6 py-2 rounded-lg transition-all duration-200"
+          onClick={onCancel}
+          disabled={loading}
+        >
           Abbrechen
         </button>
       </div>
@@ -558,7 +567,7 @@ export default function ServicesPage() {
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {filteredServices.length === 0 && (
                 <div className="col-span-full text-center text-black py-8 bg-white rounded-lg shadow-sm font-inter">
                   Keine Dienstleistungen gefunden. Klicken Sie auf <span className="inline-flex items-center gap-1 font-semibold"><FiPlus /> Hinzufügen</span>, um eine zu erstellen.

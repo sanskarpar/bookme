@@ -26,6 +26,7 @@ const NAV_LINKS = [
   { name: "Analytics", href: "/admin/analytics" },
   { name: "Bookings", href: "/admin/bookings" },
   { name: "Dashboard", href: "/admin/dashboard" },
+  { name: "Employee", href: "/admin/employee" },
   { name: "Reviews", href: "/admin/reviews" },
   { name: "Services", href: "/admin/services" },
   { name: "Settings", href: "/admin/settings" },
