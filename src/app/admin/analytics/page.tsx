@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
@@ -44,7 +44,7 @@ type AnalyticsData = {
   completionRate: number;
 };
 
-export default function AnalyticsPage() {
+function AnalyticsContent() {
   const [user, setUser] = useState<any>(null);
   const [salon, setSalon] = useState<any>(null);
   const [loading, setLoading] = useState(true);
