@@ -490,7 +490,7 @@ export default function BookingSummaryPage() {
   function getEmployeesForService(service: Service) {
     if (!salon?.employees) return [];
     return salon.employees.filter(emp =>
-      emp.services.map(String).includes(String(service._id))
+      emp.services && Array.isArray(emp.services) && emp.services.map(String).includes(String(service._id))
     );
   }
 
@@ -514,7 +514,7 @@ export default function BookingSummaryPage() {
     setServiceSelections(prev => prev.filter(sel => sel.service._id !== serviceId));
     // Also update localStorage so the cart stays in sync
     if (typeof window !== "undefined") {
-      const updated = services.filter(s => s._id !== serviceId);
+      const updated = services.filter((s) => s._id !== serviceId);
       window.localStorage.setItem("salon_cart_services", JSON.stringify(updated));
     }
   };
