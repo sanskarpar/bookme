@@ -749,3 +749,21 @@ const AuthPrompt = () => (
   </main>
 );
 
+// Main page component with Suspense boundary
+function AnalyticsPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#5C6F68] mx-auto mb-4"></div>
+          <p className="text-[#5C6F68] text-lg">Analysen werden geladen...</p>
+        </div>
+      </main>
+    }>
+      <AnalyticsContent />
+    </Suspense>
+  );
+}
+
+export default AnalyticsPage;
+
