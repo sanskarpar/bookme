@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const collection = db.collection("service");
 
   if (action === "add") {
-    const { name, description, price, pricePerBlock, priceBlockSize, duration, imageUrl, uid, serviceType } = body;
+    const { name, description, price, pricePerBlock, priceBlockSize, duration, imageUrl, uid, serviceType, durationPrices } = body;
     if (!uid) {
       await client.close();
       return NextResponse.json({ error: "Missing uid" }, { status: 400 });
@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
       imageUrl, 
       uid, 
       salonName, 
-      serviceType 
+      serviceType,
+      durationPrices
     };
     await collection.insertOne(doc);
     await client.close();

@@ -55,7 +55,15 @@ export default function LoginPage() {
         // Save user state to localStorage
         localStorage.setItem("bookme_user", JSON.stringify(user));
         localStorage.setItem("userEmail", user.email ?? "");
-        router.push("/");
+        
+        // Check for redirect URL
+        const redirectUrl = localStorage.getItem("bookme_redirect_after_login");
+        if (redirectUrl) {
+          localStorage.removeItem("bookme_redirect_after_login");
+          window.location.href = redirectUrl;
+        } else {
+          router.push("/");
+        }
       }
     } catch (err) {
       if (err instanceof FirebaseError) {

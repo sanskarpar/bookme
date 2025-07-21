@@ -181,6 +181,18 @@ export default function SalonPage() {
   // Proceed to booking with selected services
   const proceedToBooking = () => {
     if (cartServices.length > 0 && salon) {
+      // Check if user is logged in
+      if (!user) {
+        // Save current page URL and cart state for redirect after login
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("bookme_redirect_after_login", window.location.href);
+          window.localStorage.setItem("salon_booking_salon", JSON.stringify(salon));
+        }
+        // Redirect to login
+        router.push("/login");
+        return;
+      }
+
       // Save salon details to localStorage
       if (typeof window !== "undefined") {
         window.localStorage.setItem("salon_booking_salon", JSON.stringify(salon));

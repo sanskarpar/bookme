@@ -141,12 +141,9 @@ export default function AnalyticsPage() {
     const totalBookings = bookings.length;
     const averageBookingValue = completedBookings.length > 0 ? totalRevenue / completedBookings.length : 0;
 
-    // Use only confirmed bookings for these analytics
-    const confirmedBookings = bookings.filter(b => b.status === "confirmed");
-
-    // Service popularity (confirmed only)
+    // --- Popular Services: use ALL bookings ---
     const serviceStats: {[key: string]: {count: number; revenue: number}} = {};
-    confirmedBookings.forEach(booking => {
+    bookings.forEach(booking => {
       if (Array.isArray(booking.services)) {
         booking.services.forEach((service: any) => {
           if (!serviceStats[service.name]) {
@@ -162,9 +159,9 @@ export default function AnalyticsPage() {
       .map(([name, stats]) => ({name, ...stats}))
       .sort((a, b) => b.count - a.count);
 
-    // Employee performance (confirmed only)
+    // --- Employee performance: COMPLETED bookings only ---
     const employeeStats: {[key: string]: {bookings: number; revenue: number}} = {};
-    confirmedBookings.forEach(booking => {
+    completedBookings.forEach(booking => {
       if (Array.isArray(booking.services)) {
         booking.services.forEach((service: any) => {
           const employee = service.employee || 'Unassigned';
@@ -199,9 +196,9 @@ export default function AnalyticsPage() {
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    // Service type breakdown (confirmed only)
+    // --- Service type breakdown: ALL bookings ---
     const serviceTypeStats: {[key: string]: {count: number; revenue: number}} = {};
-    confirmedBookings.forEach(booking => {
+    bookings.forEach(booking => {
       if (Array.isArray(booking.services)) {
         booking.services.forEach((service: any) => {
           const serviceData = Array.isArray(services) ? services.find(s => s._id === service.id) : undefined;
@@ -278,9 +275,9 @@ export default function AnalyticsPage() {
       ? (returningCustomers / customerMap.size) * 100
       : 0;
 
-    // Time slot demand (confirmed only)
+    // --- Time slot demand: ALL bookings ---
     const timeSlotStats: {[key: string]: number} = {};
-    confirmedBookings.forEach(booking => {
+    bookings.forEach(booking => {
       const time = booking.time || '12:00';
       timeSlotStats[time] = (timeSlotStats[time] || 0) + 1;
     });
@@ -289,10 +286,10 @@ export default function AnalyticsPage() {
       .map(([time, bookings]) => ({ time, bookings }))
       .sort((a, b) => a.time.localeCompare(b.time));
 
-    // Weekly trends (confirmed only)
+    // --- Weekly trends: ALL bookings ---
     const weeklyStats: {[key: string]: {bookings: number; revenue: number}} = {};
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    confirmedBookings.forEach(booking => {
+    bookings.forEach(booking => {
       const date = new Date(booking.date);
       const dayName = dayNames[date.getDay()];
       if (!weeklyStats[dayName]) {
@@ -307,7 +304,8 @@ export default function AnalyticsPage() {
       revenue: weeklyStats[day]?.revenue || 0
     }));
 
-    // Monthly trends (confirmed only, last 6 months)
+    // --- Monthly trends: keep as is (confirmed bookings) ---
+    const confirmedBookings = bookings.filter(b => b.status === "confirmed");
     const monthlyStats: {[key: string]: {bookings: number; revenue: number}} = {};
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     confirmedBookings.forEach(booking => {

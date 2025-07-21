@@ -477,13 +477,23 @@ function FeaturedSalonCard({ salon, isMobile }: { salon: any, isMobile: boolean 
     fetchServices();
   }, [salon.uid]);
 
+  // --- Updated price range logic to match salons page ---
   function getPriceRange(uid: string) {
     const salonServices = Array.isArray(services) ? services.filter((s) => s.uid === uid) : [];
     if (salonServices.length === 0) return null;
 
     const allPrices: number[] = [];
     for (const service of salonServices) {
-      if (service.price !== undefined && service.price !== null && !isNaN(Number(service.price))) {
+      // Handle new durationPrices structure
+      if (service.durationPrices && Array.isArray(service.durationPrices)) {
+        service.durationPrices.forEach((dp: any) => {
+          if (dp.price && !isNaN(Number(dp.price))) {
+            allPrices.push(Number(dp.price));
+          }
+        });
+      }
+      // Fallback for old structure
+      else if (service.price !== undefined && service.price !== null && !isNaN(Number(service.price))) {
         allPrices.push(Number(service.price));
       }
       else if (
@@ -508,6 +518,7 @@ function FeaturedSalonCard({ salon, isMobile }: { salon: any, isMobile: boolean 
     if (minPrice === maxPrice) return `€${minPrice}`;
     return `€${minPrice} - €${maxPrice}`;
   }
+  // --- end update ---
 
   return (
     <div
@@ -535,9 +546,9 @@ function FeaturedSalonCard({ salon, isMobile }: { salon: any, isMobile: boolean 
         {/* Price range */}
         <p className="text-[#5C6F68] font-medium mb-2" style={{ fontSize: isMobile ? "0.9rem" : "1rem" }}>
           {getPriceRange(salon.uid) ? (
-            <>Price Range: {getPriceRange(salon.uid)}</>
+            <>Preisbereich: {getPriceRange(salon.uid)}</>
           ) : (
-            <>No price info</>
+            <>Keine Preisinformation</>
           )}
         </p>
         <p className="text-gray-700 mb-2" style={{ fontSize: isMobile ? "0.9rem" : "1rem" }}>{salon.description}</p>

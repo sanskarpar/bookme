@@ -279,10 +279,9 @@ export default function SalonDashboard() {
         ? ((thisWeekRevenue - lastWeekRevenue) / lastWeekRevenue) * 100 
         : thisWeekRevenue > 0 ? 100 : 0;
       
-      // Find most popular service (from confirmed bookings only)
+      // Find most popular service (from all bookings, regardless of status)
       const serviceCount: {[key: string]: number} = {};
-      const confirmedBookings = bookings.filter((booking: any) => booking.status === 'confirmed');
-      confirmedBookings.forEach((booking: any) => {
+      bookings.forEach((booking: any) => {
         if (Array.isArray(booking.services)) {
           booking.services.forEach((service: any) => {
             serviceCount[service.name] = (serviceCount[service.name] || 0) + 1;
