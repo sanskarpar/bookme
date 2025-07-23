@@ -100,16 +100,30 @@ export default function CustomersPage() {
           const isSystemUser = firebaseUser.email === "system@gmail.com";
           setIsSystemAdmin(isSystemUser);
           
-          if (!isSystemUser) {
+          if (isSystemUser) {
+            // System admin - can see all customers or filter by salonUid param
+            const urlParams = new URLSearchParams(window.location.search);
+            const salonUidParam = urlParams.get('salonUid');
+            if (salonUidParam) {
+              // System admin viewing specific salon's customers
+              const salonRes = await fetch(`/api/salons?uid=${encodeURIComponent(salonUidParam)}`);
+              if (salonRes.ok) {
+                const salonData = await salonRes.json();
+                setSalon(salonData.salon ?? salonData);
+                await fetchCustomers(salonUidParam);
+              } else {
+                await fetchCustomers(); // fallback to all
+              }
+            } else {
+              await fetchCustomers();
+            }
+          } else {
             // Regular salon user - fetch salon data
             const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
             if (!res.ok) throw new Error("Salon nicht gefunden.");
             const data = await res.json();
             setSalon(data.salon ?? data);
             await fetchCustomers(data.salon?.uid);
-          } else {
-            // System admin - can see all customers
-            await fetchCustomers();
           }
         } catch (err) {
           console.error("Error loading salon:", err);
@@ -394,7 +408,7 @@ export default function CustomersPage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/customers" />
+      <Navbar user={user} currentPath="/admin/customers" viewingSalonUid={isSystemAdmin ? (salon?.uid ?? null) : undefined} />
       {/* Blur overlay when modal is open */}
       {showCustomerModal && (
         <div
@@ -408,7 +422,11 @@ export default function CustomersPage() {
           <div className="mb-8 text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2">
               Kundenverwaltung
-              {isSystemAdmin && <span className="text-lg text-gray-600 block mt-1">(System-Ansicht)</span>}
+              {isSystemAdmin && (
+                <span className="text-lg text-gray-600 block mt-1">
+                  (System-Ansicht{salon?.name ? ` für ${salon.name}` : ""})
+                </span>
+              )}
             </h1>
             <p className="text-black text-base sm:text-lg">
               Verwalten Sie Ihre Kunden und analysieren Sie deren Buchungsverhalten
