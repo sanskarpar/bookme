@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
+import Footer from "@/components/footer";
 import { FiCalendar, FiDollarSign, FiTrendingUp, FiStar, FiClock, FiUser, FiScissors } from "react-icons/fi";
 
 // Constants
@@ -603,6 +604,7 @@ export default function SalonDashboard() {
             </section>
           </div>
         </div>
+        <Footer />
       </main>
     </>
   );

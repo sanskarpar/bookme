@@ -4,6 +4,7 @@ import { FiMapPin, FiPhone, FiScissors, FiStar, FiFilter, FiX } from "react-icon
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import Navbar from "../../components/navbar";
+import Footer from "../../components/footer";
 
 // Color palette (same as dashboard)
 const COLORS = {
@@ -503,6 +504,8 @@ function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
           }
         </div>
       </div>
+      {/* Footer outside main content for full width */}
+      <Footer />
     </main>
   );
 }

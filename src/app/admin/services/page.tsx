@@ -4,6 +4,7 @@ import { FiEdit2, FiTrash2, FiPlus, FiScissors } from "react-icons/fi";
 import { getAuth, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "@/components/adminnavbar";
+import Footer from "@/components/footer";
 
 // --- Helper to call server actions ---
 async function callServerAction(action: string, payload: any) {
@@ -730,6 +731,7 @@ export default function ServicesPage() {
             )}
           </section>
         </div>
+        <Footer />
       </main>
     </>
   );

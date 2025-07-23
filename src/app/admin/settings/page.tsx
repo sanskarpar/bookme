@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
+import Footer from "@/components/footer";
 
 const COLORS = {
   primary: "#5C6F68",
@@ -327,6 +328,7 @@ export default function SettingsPage() {
             <p className="text-black text-lg">Lade Einstellungen...</p>
           </div>
         </main>
+        <Footer />
       </>
     );
   }
@@ -341,6 +343,7 @@ export default function SettingsPage() {
             <p className="text-black mb-4">Melden Sie sich an, um die Einstellungen zu sehen.</p>
           </div>
         </main>
+        <Footer />
       </>
     );
   }
@@ -733,6 +736,7 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+        <Footer />
       </main>
     </>
   );

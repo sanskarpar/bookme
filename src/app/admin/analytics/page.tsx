@@ -3,6 +3,7 @@ import React, { useEffect, useState, Suspense } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
+import Footer from "@/components/footer";
 import { useSearchParams } from "next/navigation";
 import { 
   FiTrendingUp, FiUsers, FiClock, FiDollarSign, FiCalendar, 
@@ -713,6 +714,7 @@ function AnalyticsContent() {
             </>
           )}
         </div>
+        <Footer />
       </main>
     </>
   );

@@ -3,7 +3,8 @@ import React, { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
-import { FiStar, FiUser, FiCalendar, FiTrendingUp, FiEdit, FiTrash2, FiMessageSquare, FiAward, FiFilter } from "react-icons/fi";
+import Footer from "@/components/footer";
+import { FiMessageSquare, FiStar, FiAward, FiUser, FiTrash2 } from "react-icons/fi";
 
 // Constants
 const COLORS = {
@@ -589,6 +590,7 @@ export default function ReviewsPage() {
             </div>
           </section>
         </div>
+        <Footer />
       </main>
     </>
   );

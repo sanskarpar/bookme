@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { FiMapPin, FiPhone, FiScissors, FiClock, FiStar, FiArrowLeft, FiUser, FiEdit, FiTrash2 } from "react-icons/fi";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase";
+import Footer from "@/components/footer";
 
 // Color palette (same as dashboard)
 const COLORS = {
@@ -1004,13 +1005,6 @@ export default function SalonPage() {
           </div>
         )}
 
-        {/* Footer */}
-        <footer className="bg-white border-t border-[#E4DED5] py-4 sm:py-8">
-          <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 text-center">
-            <p className="text-gray-600 text-xs sm:text-base">© 2024 Book Your Style. Alle Rechte vorbehalten.</p>
-          </div>
-        </footer>
-
         {/* Service Details Popup */}
         {detailsService && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -1068,6 +1062,8 @@ export default function SalonPage() {
           </div>
         )}
       </div>
+      {/* Footer outside main content for full width */}
+      <Footer />
     </main>
   );
 }

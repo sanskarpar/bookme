@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../../components/navbar";
+import Footer from "../../components/footer";
 import { FiCalendar, FiClock, FiMapPin, FiUser, FiScissors } from "react-icons/fi";
 
 const COLORS = {
@@ -145,6 +146,7 @@ export default function BookingsPage() {
             <p className="text-[#5C6F68] text-lg">Loading your bookings...</p>
           </div>
         </div>
+        <Footer />
       </main>
     );
   }
@@ -259,6 +261,7 @@ export default function BookingsPage() {
           </div>
         )}
       </div>
+      <Footer />
     </main>
   );
 }

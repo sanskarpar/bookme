@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
+import Footer from "@/components/footer";
 import { FiCalendar, FiClock, FiUser, FiScissors, FiPhone, FiMapPin, FiFilter, FiSearch } from "react-icons/fi";
 
 // Constants
@@ -806,6 +807,7 @@ export default function AdminBookingsPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }
