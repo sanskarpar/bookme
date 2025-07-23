@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       lat: typeof data.lat === "number" ? data.lat : undefined,
       lng: typeof data.lng === "number" ? data.lng : undefined,
       createdAt: new Date(),
+      analyticsAccess: false, // <-- default paywall
     });
 
     await client.close();
@@ -96,7 +97,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { email, name, imageUrl, imageUrls, description, location, contact, lat, lng, googleMapsAddress, workingDays, holidays, employees } = await req.json();
+    const { email, name, imageUrl, imageUrls, description, location, contact, lat, lng, googleMapsAddress, workingDays, holidays, employees, analyticsAccess, disableBookingHistory, storeCustomerAddress } = await req.json();
     if (!email) {
       return NextResponse.json({ error: 'Missing email' }, { status: 400 });
     }
@@ -139,6 +140,18 @@ export async function PATCH(req: Request) {
     if (Array.isArray(employees)) {
       updateFields.employees = employees;
     }
+    // Add analyticsAccess toggle
+    if (typeof analyticsAccess === "boolean") {
+      updateFields.analyticsAccess = analyticsAccess;
+    }
+    // Add disableBookingHistory toggle
+    if (typeof disableBookingHistory === "boolean") {
+      updateFields.disableBookingHistory = disableBookingHistory;
+    }
+    // Add storeCustomerAddress toggle
+    if (typeof storeCustomerAddress === "boolean") {
+      updateFields.storeCustomerAddress = storeCustomerAddress;
+    }
     if (Object.keys(updateFields).length === 0) {
       await client.close();
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
@@ -151,9 +164,9 @@ export async function PATCH(req: Request) {
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: 'Salon not found' }, { status: 404 });
     }
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

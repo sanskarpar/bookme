@@ -50,7 +50,7 @@ function AnalyticsContent() {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [timeRange, setTimeRange] = useState("30"); // days
+  const [timeRange, setTimeRange] = useState("30"); // days or 'year'
   const [selectedView, setSelectedView] = useState("overview");
   const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
@@ -143,10 +143,10 @@ function AnalyticsContent() {
       const reviews = reviewsData.reviews || [];
 
       // Filter bookings based on time range
+      let filteredBookings = bookings;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeRange));
-      
-      const filteredBookings = bookings.filter((booking: any) => 
+      filteredBookings = bookings.filter((booking: any) =>
         new Date(booking.createdAt) >= cutoffDate
       );
 
@@ -388,9 +388,39 @@ function AnalyticsContent() {
     );
   }
 
+  // Restrict access for salons without analytics access
+  if (
+    userRole === "salon" &&
+    !isSystemAdmin &&
+    salon &&
+    salon.analyticsAccess === false
+  ) {
+    return (
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
+        <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Analytics nur für Premium-Salons</h2>
+          <p className="text-gray-600 mb-4">
+            Die Analyse- und Statistikfunktionen sind nur für zahlende Salons verfügbar.<br />
+            Bitte kontaktieren Sie uns, um Analytics für Ihren Account freizuschalten.
+          </p>
+          <a
+            href="/kontakt"
+            className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2 px-4 rounded-md inline-block"
+          >
+            Kontakt aufnehmen
+          </a>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <>
-      <Navbar user={user} currentPath="/admin/analytics" />
+      <Navbar 
+        user={user} 
+        currentPath="/admin/analytics" 
+        viewingSalonUid={viewingSalonUid}
+      />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* Header */}
@@ -766,4 +796,3 @@ function AnalyticsPage() {
 }
 
 export default AnalyticsPage;
-

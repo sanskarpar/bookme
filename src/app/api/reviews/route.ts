@@ -97,16 +97,23 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const salonUid = searchParams.get("salonUid");
     const customerUid = searchParams.get("customerUid");
-    const serviceName = searchParams.get("serviceName"); // <-- add this
+    const serviceName = searchParams.get("serviceName");
+    const isSystemAdmin = searchParams.get("systemAdmin") === "true";
 
     const client = await MongoClient.connect(uri);
     const db = client.db(dbName);
     const reviewsCollection = db.collection("reviews");
 
     let query: any = {};
-    if (salonUid) query.salonUid = salonUid;
-    if (customerUid) query.customerUid = customerUid;
-    if (serviceName) query.serviceName = serviceName; // <-- add this
+    
+    if (isSystemAdmin) {
+      // System admin can see all reviews across all salons
+      // No restrictions applied
+    } else {
+      if (salonUid) query.salonUid = salonUid;
+      if (customerUid) query.customerUid = customerUid;
+      if (serviceName) query.serviceName = serviceName;
+    }
 
     const reviews = await reviewsCollection.find(query).sort({ createdAt: -1 }).toArray();
     

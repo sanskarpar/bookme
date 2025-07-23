@@ -7,7 +7,7 @@ const dbName = process.env.MONGODB_DB;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { salonId, salonUid, customerUid, services, date, time, total, customerName, customerPhone, status = 'confirmed' } = body;
+    const { salonId, salonUid, customerUid, services, date, time, total, customerName, customerPhone, customerAddress, status = 'confirmed' } = body;
 
     // Validation
     if (!salonId || !salonUid || !customerUid || !services || !date || !time || total === undefined || !customerName || !customerPhone) {
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       total: Number(total),
       customerName,
       customerPhone,
+      customerAddress: customerAddress || null, // Store customer address if provided
       status,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
     const bookingId = searchParams.get("bookingId");
     const date = searchParams.get("date");
     const employee = searchParams.get("employee");
+    const isSystemAdmin = searchParams.get("systemAdmin") === "true";
 
     const client = await MongoClient.connect(uri);
     const db = client.db(dbName);
@@ -64,6 +66,9 @@ export async function GET(req: NextRequest) {
 
     if (bookingId) {
       query._id = new ObjectId(bookingId);
+    } else if (isSystemAdmin) {
+      // System admin can see all bookings across all salons
+      // No restrictions applied
     } else {
       if (salonUid) query.salonUid = salonUid;
       if (customerUid) query.customerUid = customerUid;
@@ -75,8 +80,29 @@ export async function GET(req: NextRequest) {
     }
 
     const bookings = await collection.find(query).toArray();
-    await client.close();
+    
+    // If system admin, also fetch salon names for better display
+    if (isSystemAdmin && bookings.length > 0) {
+      const salonsCollection = db.collection("salons");
+      const salonUids = [...new Set(bookings.map(b => b.salonUid))];
+      const salons = await salonsCollection.find(
+        { uid: { $in: salonUids } },
+        { projection: { uid: 1, name: 1, email: 1 } }
+      ).toArray();
+      
+      const salonMap = Object.fromEntries(salons.map(s => [s.uid, s]));
+      
+      // Enrich bookings with salon info
+      const enrichedBookings = bookings.map(booking => ({
+        ...booking,
+        salonInfo: salonMap[booking.salonUid] || null
+      }));
+      
+      await client.close();
+      return NextResponse.json({ bookings: enrichedBookings });
+    }
 
+    await client.close();
     return NextResponse.json({ bookings });
   } catch (error) {
     console.error('Booking fetch error:', error);

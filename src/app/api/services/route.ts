@@ -87,13 +87,17 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const uid = searchParams.get("uid");
   const uids = searchParams.getAll("uids");
+  const isSystemAdmin = searchParams.get("systemAdmin") === "true";
 
   const client = await MongoClient.connect(uri);
   const db = client.db(dbName);
   const collection = db.collection("service");
 
   let services;
-  if (uid) {
+  if (isSystemAdmin) {
+    // System admin can see all services across all salons
+    services = await collection.find({}).toArray();
+  } else if (uid) {
     services = await collection.find({ uid }).toArray();
   } else if (uids.length > 0) {
     services = await collection.find({ uid: { $in: uids } }).toArray();

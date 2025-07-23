@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
-import { FiCalendar, FiDollarSign, FiTrendingUp, FiStar, FiClock, FiUser, FiScissors, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiCalendar, FiDollarSign, FiTrendingUp, FiStar, FiClock, FiUser, FiScissors } from "react-icons/fi";
 
 // Constants
 const COLORS = {
@@ -42,6 +42,8 @@ const auth = getAuth(app);
 type Booking = {
   id: string;
   time: string;
+  endTime: string;
+  duration?: number;
   service: string;
   customer: string;
   status: 'upcoming' | 'completed' | 'no-show';
@@ -86,7 +88,8 @@ export default function SalonDashboard() {
   const [weeklyBookings, setWeeklyBookings] = useState<{ day: string; count: number }[]>([]);
   const [calendarBookings, setCalendarBookings] = useState<CalendarBooking[]>([]);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
-  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false); // NEW
+  const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
 
   // Get current user and fetch salon info and role
   useEffect(() => {
@@ -95,42 +98,69 @@ export default function SalonDashboard() {
       if (firebaseUser?.email) {
         setLoading(true);
         try {
-          // Fetch user role
-          const userRes = await fetch(`/api/users?email=${encodeURIComponent(firebaseUser.email)}`);
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            const role = typeof userData.role === "string"
-              ? userData.role.trim().toLowerCase()
-              : null;
-            setUserRole(role);
-          } else {
-            setUserRole(null);
-          }
+          // Check if this is system admin viewing another salon's dashboard
+          const urlParams = new URLSearchParams(window.location.search);
+          const salonUidParam = urlParams.get('salonUid');
+          const isSystemUser = firebaseUser.email === "system@gmail.com";
+          setIsSystemAdmin(isSystemUser);
           
-          // Fetch salon info
-          const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
-          if (!res.ok) throw new Error("Salon not found");
-          const data = await res.json();
-          
-          // Fix: data.salon instead of data
-          const salonData = data.salon || data;
-          setSalon(salonData);
-          
-          console.log('Salon data:', salonData); // Debug log
-          
-          if (salonData?.uid) {
-            // Get today's date in correct format
-            const today = new Date();
-            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-            console.log('Today\'s date string:', todayStr);
+          if (salonUidParam && isSystemUser) {
+            // System admin viewing specific salon dashboard
+            setViewingSalonUid(salonUidParam);
+            setUserRole("system");
             
-            await fetchTodayBookings(salonData.uid, todayStr);
-            
-            // Fetch stats and activities
-            await fetchStats(salonData.uid);
-            await fetchActivities(salonData.uid);
+            // Fetch the specific salon data
+            const salonRes = await fetch(`/api/salons?uid=${encodeURIComponent(salonUidParam)}`);
+            if (salonRes.ok) {
+              const salonData = await salonRes.json();
+              setSalon(salonData.salon);
+              
+              if (salonData.salon?.uid) {
+                // Get today's date in correct format
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                
+                await fetchTodayBookings(salonData.salon.uid, todayStr);
+                await fetchStats(salonData.salon.uid);
+                await fetchActivities(salonData.salon.uid);
+              }
+            }
           } else {
-            console.error('No salon UID found:', salonData);
+            // Normal salon user or system admin viewing their own dashboard
+            // Fetch user role
+            const userRes = await fetch(`/api/users?email=${encodeURIComponent(firebaseUser.email)}`);
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              const role = typeof userData.role === "string"
+                ? userData.role.trim().toLowerCase()
+                : null;
+              setUserRole(role);
+            } else {
+              setUserRole(null);
+            }
+            
+            // Fetch salon info
+            const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
+            if (!res.ok) throw new Error("Salon not found");
+            const data = await res.json();
+            
+            const salonData = data.salon || data;
+            setSalon(salonData);
+            
+            console.log('Salon data:', salonData);
+            
+            if (salonData?.uid) {
+              // Get today's date in correct format
+              const today = new Date();
+              const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+              console.log('Today\'s date string:', todayStr);
+              
+              await fetchTodayBookings(salonData.uid, todayStr);
+              await fetchStats(salonData.uid);
+              await fetchActivities(salonData.uid);
+            } else {
+              console.error('No salon UID found:', salonData);
+            }
           }
           
         } catch (err) {
@@ -179,6 +209,7 @@ export default function SalonDashboard() {
             id: booking._id,
             time: startTime,
             endTime: endTime,
+            duration,
             service: booking.services.map((s: any) => s.name).join(', '),
             customer: booking.customerName,
             status: booking.status === 'confirmed' ? 'upcoming' : booking.status,
@@ -195,7 +226,19 @@ export default function SalonDashboard() {
           return matches;
         });
 
+        // Only show upcoming bookings (whose end time is in the future)
+        const now = new Date();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
         const transformedBookings = todayBookingsRaw.map((booking: any) => {
+          const startTime = booking.time;
+          const duration = booking.services.reduce((total: number, service: any) => total + (service.duration || 30), 0);
+          const [hours, minutes] = startTime.split(':').map(Number);
+          const endMinutes = hours * 60 + minutes + duration;
+          const endHours = Math.floor(endMinutes / 60);
+          const endMins = endMinutes % 60;
+          const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+
           const employeeNames = Array.from(
             new Set(
               (booking.services || [])
@@ -203,14 +246,24 @@ export default function SalonDashboard() {
                 .filter(Boolean)
             )
           ).join(', ');
+
           return {
             id: booking._id,
-            time: booking.time,
+            time: startTime,
+            endTime,
+            duration,
             service: booking.services.map((s: any) => s.name).join(', '),
             customer: booking.customerName,
             status: booking.status === 'confirmed' ? 'upcoming' : booking.status,
             employee: employeeNames // add employee field
           };
+        })
+        // Only show bookings whose end time is in the future and status is 'upcoming'
+        .filter((booking: any) => {
+          if (booking.status !== 'upcoming') return false;
+          const [endHour, endMin] = booking.endTime.split(':').map(Number);
+          const bookingEndMinutes = endHour * 60 + endMin;
+          return bookingEndMinutes > nowMinutes;
         });
 
         transformedBookings.sort((a: any, b: any) => a.time.localeCompare(b.time));
@@ -405,7 +458,7 @@ export default function SalonDashboard() {
     return <AuthPrompt />;
   }
 
-  if (userRole && userRole !== "salon") {
+  if (userRole && userRole !== "salon" && !isSystemAdmin) {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
         <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
@@ -418,13 +471,20 @@ export default function SalonDashboard() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/dashboard" />
+      <Navbar 
+        user={user} 
+        currentPath="/admin/dashboard" 
+        viewingSalonUid={viewingSalonUid}
+      />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-6xl mx-auto py-6 px-2 sm:px-4 lg:px-8">
           {/* Header */}
           <div className="mb-6 sm:mb-8 text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
               Willkommen zurück, {salon?.name || 'Saloninhaber'}
+              {viewingSalonUid && isSystemAdmin && (
+                <span className="text-lg text-gray-600 block mt-1">(System-Ansicht)</span>
+              )}
             </h1>
             <p className="text-gray-600 text-sm sm:text-base">
               Das passiert heute in Ihrem Salon.
@@ -451,7 +511,9 @@ export default function SalonDashboard() {
                 <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uhrzeit</th>
+                      <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Uhrzeit / Dauer
+                      </th>
                       <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dienstleistung</th>
                       <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kunde</th>
                       <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitarbeiter</th>
@@ -463,7 +525,11 @@ export default function SalonDashboard() {
                       todayBookings.map((booking) => (
                         <tr key={booking.id} className={booking.status !== 'upcoming' ? 'opacity-50' : ''}>
                           <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                            {booking.time}
+                            {/* Show time range and duration */}
+                            {booking.time} - {booking.endTime}
+                            <span className="ml-2 text-gray-400 text-xs">
+                              ({booking.duration} min)
+                            </span>
                           </td>
                           <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                             {booking.service}
@@ -528,13 +594,6 @@ export default function SalonDashboard() {
                     {'Heutige Termine'}
                   </p>
                 </div>
-                <button
-                  onClick={() => setIsCalendarModalOpen(true)}
-                  className="flex items-center text-black hover:text-gray-900 text-sm font-medium"
-                >
-                  {'Erweitern'}
-                  <FiChevronDown className="ml-1" />
-                </button>
               </div>
               <CalendarWidget 
                 bookings={calendarBookings} 
@@ -542,43 +601,8 @@ export default function SalonDashboard() {
                 salon={salon}
               />
             </section>
-
-            {/* Recent Activity */}
-            <section className="bg-white p-4 sm:p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center mb-3 sm:mb-4">
-                <FiUser className="mr-2" /> Letzte Aktivitäten
-              </h2>
-              <div className="space-y-3 sm:space-y-4">
-                {activities.length > 0 ? activities.map((activity) => (
-                  <div key={activity.id} className="flex items-start">
-                    <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                      <FiScissors size={16} />
-                    </div>
-                    <div className="ml-2 sm:ml-3">
-                      <p className="text-xs sm:text-sm text-gray-700">
-                        {activity.user && (
-                          <span className="font-medium text-primary-600">{activity.user}</span>
-                        )}{' '}
-                        {activity.action}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">{activity.timestamp}</p>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-gray-500 text-xs sm:text-sm">Keine aktuellen Aktivitäten</p>
-                )}
-              </div>
-            </section>
           </div>
         </div>
-        {/* Calendar Modal */}
-        {isCalendarModalOpen && (
-          <CalendarModal
-            bookings={calendarBookings}
-            salon={salon}
-            onClose={() => setIsCalendarModalOpen(false)}
-          />
-        )}
       </main>
     </>
   );
@@ -623,419 +647,6 @@ const AuthPrompt = () => (
   </main>
 );
 
-// Calendar Modal Component
-const CalendarModal = ({
-  bookings,
-  salon,
-  onClose,
-}: {
-  bookings: CalendarBooking[];
-  salon: any;
-  onClose: () => void;
-}) => {
-  // Prevent background scroll when modal is open
-  React.useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, []);
-
-  // Handle click outside to close
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50"
-      onClick={handleOverlayClick}
-    >
-      <div className="relative bg-white rounded-2xl shadow-xl max-w-7xl w-full mx-6 max-h-[95vh] overflow-hidden">
-        <div className="border-b border-gray-100 px-8 py-6 bg-gradient-to-r from-slate-50 to-gray-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-1">
-                Calendar Overview
-              </h2>
-              <p className="text-sm text-gray-600">
-                {salon?.name} • {new Date().toLocaleDateString('en-US', { 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all duration-200"
-              aria-label="Close"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div className="p-8 overflow-auto" style={{ maxHeight: "calc(95vh - 140px)" }}>
-          <EnhancedCalendarWidget
-            bookings={bookings}
-            salon={salon}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Enhanced Calendar Widget Component
-const EnhancedCalendarWidget = ({ 
-  bookings, 
-  salon 
-}: { 
-  bookings: CalendarBooking[], 
-  salon: any 
-}) => {
-  const [currentWeek, setCurrentWeek] = useState(new Date());
-  
-  // Get week days starting from Monday
-  const getWeekDays = (baseDate: Date) => {
-    const startOfWeek = new Date(baseDate);
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Monday
-    startOfWeek.setDate(diff);
-    
-    const weekDays = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      
-      // Get German day name for working days lookup
-      const germanDayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-      const germanDayName = germanDayNames[date.getDay()];
-      
-      // Check if salon is open on this day
-      const workingDay = salon?.workingDays?.[germanDayName];
-      const isOpen = workingDay?.open || false;
-      
-      // Check if it's a holiday
-      const isHoliday = salon?.holidays?.includes(dateStr) || false;
-      
-      weekDays.push({
-        date: dateStr,
-        dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        dayNumber: date.getDate(),
-        isToday: date.toDateString() === new Date().toDateString(),
-        isCurrentMonth: date.getMonth() === baseDate.getMonth(),
-        isOpen: isOpen && !isHoliday,
-        isHoliday: isHoliday,
-        workingHours: isOpen && !isHoliday ? {
-          start: workingDay.start || '09:00',
-          end: workingDay.end || '18:00'
-        } : null,
-        germanDayName
-      });
-    }
-    return weekDays;
-  };
-
-  const weekDays = getWeekDays(currentWeek);
-  
-  // Generate time slots based on salon's earliest and latest hours
-  const getTimeSlots = () => {
-    let earliestHour = 24;
-    let latestHour = 0;
-    
-    // Find the earliest start and latest end time across all working days
-    weekDays.forEach(day => {
-      if (day.workingHours) {
-        const startHour = parseInt(day.workingHours.start.split(':')[0]);
-        const endHour = parseInt(day.workingHours.end.split(':')[0]);
-        earliestHour = Math.min(earliestHour, startHour);
-        latestHour = Math.max(latestHour, endHour);
-      }
-    });
-    
-    // Default to 7-21 if no working hours found
-    if (earliestHour === 24) earliestHour = 7;
-    if (latestHour === 0) latestHour = 21;
-    
-    // Extend range slightly for better visibility
-    earliestHour = Math.max(7, earliestHour - 1);
-    latestHour = Math.min(22, latestHour + 1);
-    
-    const timeSlots: string[] = [];
-    for (let hour = earliestHour; hour <= latestHour; hour++) {
-      timeSlots.push(`${String(hour).padStart(2, '0')}:00`);
-      if (hour < latestHour) timeSlots.push(`${String(hour).padStart(2, '0')}:30`);
-    }
-    return timeSlots;
-  };
-
-  const timeSlots = getTimeSlots();
-
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    const newDate = new Date(currentWeek);
-    newDate.setDate(currentWeek.getDate() + (direction === 'next' ? 7 : -7));
-    setCurrentWeek(newDate);
-  };
-
-  const goToToday = () => {
-    setCurrentWeek(new Date());
-  };
-
-  const getBookingsForSlot = (date: string, time: string) => {
-    return bookings.filter(booking => {
-      if (booking.date !== date) return false;
-      
-      const bookingStart = booking.time;
-      const bookingEnd = booking.endTime;
-      
-      // Check if this time slot overlaps with the booking
-      return bookingStart <= time && bookingEnd > time;
-    });
-  };
-
-  // Check if a time slot is within working hours
-  const isTimeSlotAvailable = (day: any, time: string) => {
-    if (!day.isOpen || day.isHoliday || !day.workingHours) return false;
-    
-    const slotTime = time;
-    const startTime = day.workingHours.start;
-    const endTime = day.workingHours.end;
-    
-    return slotTime >= startTime && slotTime < endTime;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'upcoming':
-      case 'confirmed':
-        return 'bg-blue-50 text-blue-800 border-l-4 border-blue-500';
-      case 'completed':
-        return 'bg-emerald-50 text-emerald-800 border-l-4 border-emerald-500';
-      case 'no-show':
-        return 'bg-red-50 text-red-800 border-l-4 border-red-500';
-      default:
-        return 'bg-gray-50 text-gray-800 border-l-4 border-gray-400';
-    }
-  };
-
-  const getBookingDuration = (startTime: string, endTime: string) => {
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [endHour, endMin] = endTime.split(':').map(Number);
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-    return Math.max(1, Math.ceil((endMinutes - startMinutes) / 30)); // Minimum 1 slot
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Calendar Header with Navigation */}
-      <div className="flex items-center justify-between bg-slate-50 p-5 rounded-xl border border-slate-200">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigateWeek('prev')}
-            className="p-2.5 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all duration-200 shadow-sm border border-transparent hover:border-gray-200"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          
-          <h3 className="text-lg font-semibold text-gray-900">
-            {currentWeek.toLocaleDateString('en-US', { 
-              month: 'long', 
-              year: 'numeric' 
-            })}
-          </h3>
-          
-          <button
-            onClick={() => navigateWeek('next')}
-            className="p-2.5 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all duration-200 shadow-sm border border-transparent hover:border-gray-200"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-        
-        <button
-          onClick={goToToday}
-          className="px-4 py-2 text-sm font-medium text-blue-700 hover:text-blue-800 bg-white hover:bg-blue-50 border border-blue-200 hover:border-blue-300 rounded-lg transition-all duration-200 shadow-sm"
-        >
-          Today
-        </button>
-      </div>
-
-      {/* Legend */}
-      <div className="flex flex-wrap gap-6 text-sm bg-white p-4 rounded-xl border border-gray-100">
-        <div className="flex items-center">
-          <div className="w-3 h-3 bg-blue-500 rounded-sm mr-2 shadow-sm"></div>
-          <span className="text-gray-700 font-medium">Upcoming</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 bg-emerald-500 rounded-sm mr-2 shadow-sm"></div>
-          <span className="text-gray-700 font-medium">Completed</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 bg-red-500 rounded-sm mr-2 shadow-sm"></div>
-          <span className="text-gray-700 font-medium">No Show</span>
-        </div>
-        <div className="flex items-center">
-          <div className="w-3 h-3 bg-gray-300 rounded-sm mr-2 shadow-sm"></div>
-          <span className="text-gray-700 font-medium">Closed/Holiday</span>
-        </div>
-      </div>
-
-      {/* Calendar Grid */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-        {/* Week header */}
-        <div className="grid grid-cols-8 bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
-          <div className="p-4 text-center border-r border-gray-200">
-            <span className="text-sm font-semibold text-gray-600">Time</span>
-          </div>
-          {weekDays.map(day => (
-            <div 
-              key={day.date} 
-              className={`p-4 text-center border-r border-gray-200 last:border-r-0 ${
-                day.isToday 
-                  ? 'bg-blue-100 text-blue-900' 
-                  : day.isCurrentMonth 
-                    ? 'text-gray-900' 
-                    : 'text-gray-400'
-              } ${
-                day.isHoliday
-                  ? 'bg-red-50 border-red-100'
-                  : !day.isOpen
-                    ? 'bg-gray-100 opacity-60'
-                    : ''
-              }`}
-            >
-              <div className="text-xs font-medium uppercase tracking-wider mb-1">{day.dayName}</div>
-              <div className={`text-xl font-bold ${day.isToday ? 'text-blue-800' : ''}`}>
-                {day.dayNumber}
-              </div>
-              {day.isHoliday && (
-                <div className="text-xs text-red-600 font-medium mt-1">Holiday</div>
-              )}
-              {!day.isOpen && !day.isHoliday && (
-                <div className="text-xs text-gray-500 font-medium mt-1">Closed</div>
-              )}
-              {day.workingHours && (
-                <div className="text-xs text-gray-600 mt-1">
-                  {day.workingHours.start}-{day.workingHours.end}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        
-        {/* Time slots grid */}
-        <div className="relative">
-          {timeSlots.map((time, timeIndex) => (
-            <div key={time} className="grid grid-cols-8 border-b border-gray-100 last:border-b-0 min-h-[70px]">
-              <div className="p-4 text-right border-r border-gray-200 bg-slate-25 flex items-center justify-end">
-                <span className="text-sm text-gray-600 font-mono font-medium">{time}</span>
-              </div>
-              {weekDays.map((day, dayIndex) => {
-                const slotBookings = getBookingsForSlot(day.date, time);
-                const isAvailable = isTimeSlotAvailable(day, time);
-                
-                return (
-                  <div 
-                    key={`${day.date}-${time}`} 
-                    className={`relative border-r border-gray-200 last:border-r-0 p-1 ${
-                      day.isToday ? 'bg-blue-25' : ''
-                    } ${
-                      !isAvailable 
-                        ? 'bg-gray-100 opacity-50' 
-                        : 'hover:bg-gray-25 transition-colors duration-150'
-                    } ${
-                      day.isHoliday ? 'bg-red-25' : ''
-                    }`}
-                  >
-                    {/* Grey overlay for unavailable slots */}
-                    {!isAvailable && (
-                      <div className="absolute inset-0 bg-gray-200 opacity-30 pointer-events-none"></div>
-                    )}
-                    
-                    {slotBookings.map(booking => {
-                      const duration = getBookingDuration(booking.time, booking.endTime);
-                      const isFirstSlot = booking.time === time;
-                      
-                      if (!isFirstSlot) return null; // Only render on first slot
-                      
-                      return (
-                        <div
-                          key={booking.id}
-                          className={`absolute inset-x-1.5 rounded-lg p-3 ${getStatusColor(booking.status)} hover:shadow-md transition-all duration-200 cursor-pointer group z-10`}
-                          style={{
-                            height: `${duration * 70 - 8}px`
-                          }}
-                          title={`${booking.customer} - ${booking.service}`}
-                        >
-                          <div className="text-sm font-semibold truncate group-hover:font-bold transition-all">
-                            {booking.customer}
-                          </div>
-                          <div className="text-xs text-gray-600 truncate mt-1 font-medium">
-                            {booking.service}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Summary */}
-      <div className="bg-gradient-to-r from-slate-50 to-gray-50 p-6 rounded-xl border border-slate-200">
-        <h4 className="font-semibold text-gray-900 mb-4 text-lg">Weekly Summary</h4>
-        <div className="grid grid-cols-7 gap-4">
-          {weekDays.map(day => {
-            const dayBookings = bookings.filter(b => b.date === day.date);
-            return (
-              <div key={day.date} className={`text-center p-3 rounded-lg shadow-sm border ${
-                day.isHoliday 
-                  ? 'bg-red-50 border-red-200' 
-                  : !day.isOpen 
-                    ? 'bg-gray-100 border-gray-200 opacity-60' 
-                    : 'bg-white border-gray-100'
-              }`}>
-                <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">{day.dayName}</div>
-                <div className={`text-2xl font-bold mb-1 ${
-                  day.isHoliday ? 'text-red-600' : !day.isOpen ? 'text-gray-400' : 'text-gray-900'
-                }`}>
-                  {day.isHoliday ? '🏖️' : !day.isOpen ? '❌' : dayBookings.length}
-                </div>
-                <div className={`text-xs font-medium ${(!day.isHoliday && day.isOpen) ? 'text-black' : ''}`}>
-                  {day.isHoliday 
-                    ? 'Holiday' 
-                    : !day.isOpen 
-                      ? 'Closed' 
-                      : dayBookings.length === 1 
-                        ? 'Appointment' 
-                        : 'Appointments'
-                  }
-                </div>
-                {day.workingHours && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {day.workingHours.start}-{day.workingHours.end}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Calendar Widget Component (simplified for daily view)
 const CalendarWidget = ({ bookings, isExpanded, salon }: { 
   bookings: CalendarBooking[], 
@@ -1045,9 +656,15 @@ const CalendarWidget = ({ bookings, isExpanded, salon }: {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   
-  // Check if salon is open today
+  // German day and month names
   const germanDayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  const germanMonthNames = [
+    'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+    'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+  ];
   const todayGermanName = germanDayNames[today.getDay()];
+  const todayGermanDateStr = `${todayGermanName}, ${today.getDate()}. ${germanMonthNames[today.getMonth()]}`;
+
   const todayWorkingDay = salon?.workingDays?.[todayGermanName];
   const isOpenToday = todayWorkingDay?.open || false;
   const isTodayHoliday = salon?.holidays?.includes(todayStr) || false;
@@ -1082,20 +699,20 @@ const CalendarWidget = ({ bookings, isExpanded, salon }: {
         <h3 className={`font-semibold text-lg mb-1 ${
           isTodayHoliday ? 'text-red-900' : !canTakeBookingsToday ? 'text-gray-700' : 'text-blue-900'
         }`}>
-          {today.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+          {todayGermanDateStr}
         </h3>
         {isTodayHoliday ? (
-          <p className="text-sm text-red-700 font-medium">🏖️ Holiday - Salon Closed</p>
+          <p className="text-sm text-red-700 font-medium">🏖️ Feiertag - Salon geschlossen</p>
         ) : !canTakeBookingsToday ? (
-          <p className="text-sm text-gray-600 font-medium">❌ Salon Closed Today</p>
+          <p className="text-sm text-gray-600 font-medium">❌ Salon heute geschlossen</p>
         ) : (
           <>
             <p className="text-sm text-blue-700 font-medium">
-              {todayBookings.length} {todayBookings.length === 1 ? 'appointment' : 'appointments'} scheduled
+              {todayBookings.length} Termin{todayBookings.length === 1 ? '' : 'e'} geplant
             </p>
             {todayWorkingDay && (
               <p className="text-xs text-blue-600 mt-1">
-                Open: {todayWorkingDay.start} - {todayWorkingDay.end}
+                Geöffnet: {todayWorkingDay.start} - {todayWorkingDay.end}
               </p>
             )}
           </>

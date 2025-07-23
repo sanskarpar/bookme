@@ -12,6 +12,7 @@ type Salon = {
   location: string;
   imageUrls: string[];
   googleMapsAddress?: string;
+  storeCustomerAddress?: boolean;
   workingDays?: {
     [key: string]: {
       open: boolean;
@@ -31,6 +32,8 @@ type Salon = {
     };
     holidays: string[];
     services: string[];
+    imageUrl?: string;
+    description?: string;
   }[];
 };
 
@@ -75,6 +78,12 @@ export default function BookingSummaryPage() {
   const [serviceSelections, setServiceSelections] = useState<ServiceSelection[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState({
+    street: '',
+    number: '',
+    zip: '',
+    country: ''
+  });
 
   useEffect(() => {
     let loadedSalon = false;
@@ -337,24 +346,16 @@ export default function BookingSummaryPage() {
   function generateTimeSlots() {
     if (!selectedDate || selectedEmployees.length === 0 || !salon) return;
 
-    console.log('\n=== GENERATING TIME SLOTS ===');
-    console.log('Selected date:', selectedDate);
-    console.log('Selected employees:', selectedEmployees.map(e => e.name));
-    console.log('Booked intervals:', bookedIntervals);
-
     // Create date object from selectedDate string to get the day name
     const [year, month, day] = selectedDate.split('-').map(Number);
     const dateObj = new Date(year, month - 1, day);
     const dayName = dateObj.toLocaleDateString('de-DE', { weekday: 'long' });
-    
-    console.log('Day name:', dayName);
     
     // Find the earliest start time among all selected employees
     const earliestStart = selectedEmployees.reduce((earliest, employee) => {
       const schedule = employee.schedule[dayName];
       if (!schedule?.open) return earliest;
       const startMinutes = timeToMinutes(schedule.start);
-      console.log(`Employee ${employee.name} starts at ${schedule.start} (${startMinutes} minutes)`);
       return Math.min(earliest, startMinutes);
     }, 24 * 60); // Start with end of day
     
@@ -363,11 +364,8 @@ export default function BookingSummaryPage() {
       const schedule = employee.schedule[dayName];
       if (!schedule?.open) return latest;
       const endMinutes = timeToMinutes(schedule.end);
-      console.log(`Employee ${employee.name} ends at ${schedule.end} (${endMinutes} minutes)`);
       return Math.max(latest, endMinutes);
     }, 0);
-    
-    console.log(`Working hours: ${earliestStart}-${latestEnd} minutes`);
     
     if (earliestStart >= latestEnd) {
       console.log('No valid working hours found');
@@ -377,28 +375,32 @@ export default function BookingSummaryPage() {
 
     const slots: string[] = [];
     const totalDuration = services.reduce((sum, service) => sum + (service.duration ?? 0), 0);
-    
-    console.log(`Total service duration: ${totalDuration} minutes`);
-    console.log(`Checking slots from ${earliestStart} to ${latestEnd - totalDuration}`);
-    
+
+    // Get current time in minutes if booking for today
+    let minTimeMinutes = earliestStart;
+    const today = new Date();
+    const [selYear, selMonth, selDay] = selectedDate.split('-').map(Number);
+    if (
+      today.getFullYear() === selYear &&
+      today.getMonth() + 1 === selMonth &&
+      today.getDate() === selDay
+    ) {
+      minTimeMinutes = Math.max(minTimeMinutes, today.getHours() * 60 + today.getMinutes());
+    }
+
     // Generate slots every 30 minutes
     for (let timeMinutes = earliestStart; timeMinutes <= latestEnd - totalDuration; timeMinutes += 30) {
+      // Only show slots in the future (for today)
+      if (timeMinutes < minTimeMinutes) continue;
       const hours = Math.floor(timeMinutes / 60);
       const minutes = timeMinutes % 60;
       const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       
-      console.log(`\n--- Checking slot ${timeStr} (${timeMinutes} minutes) ---`);
-      
       if (canScheduleServices(timeStr)) {
-        console.log(`✅ Slot ${timeStr} is available`);
         slots.push(timeStr);
-      } else {
-        console.log(`❌ Slot ${timeStr} is NOT available`);
       }
     }
 
-    console.log('\nFinal available slots:', slots);
-    console.log('=== END GENERATING TIME SLOTS ===\n');
     setAvailableSlots(slots);
   }
 
@@ -412,10 +414,16 @@ export default function BookingSummaryPage() {
   }, [selectedDate, selectedEmployees, salon, services, bookedIntervals, allEmployeesSelected]);
 
   // Customer info validation
-  const isCustomerInfoValid = customerName.trim() !== '' && customerPhone.trim() !== '';
+  const isCustomerInfoValid = customerName.trim() !== '' && customerPhone.trim() !== '' && 
+    (!salon?.storeCustomerAddress || (
+      customerAddress.street.trim() !== '' && 
+      customerAddress.number.trim() !== '' && 
+      customerAddress.zip.trim() !== '' && 
+      customerAddress.country.trim() !== ''
+    ));
 
   async function createBooking() {
-    if (!salon || !selectedDate || !selectedTime || !services.length || !allEmployeesSelected || !customerName.trim() || !customerPhone.trim()) {
+    if (!salon || !selectedDate || !selectedTime || !services.length || !allEmployeesSelected || !isCustomerInfoValid) {
       alert('Please complete all booking details, select employees for each service, and enter your name and phone.');
       return;
     }
@@ -457,6 +465,7 @@ export default function BookingSummaryPage() {
         total,
         customerName,
         customerPhone,
+        customerAddress: salon.storeCustomerAddress ? customerAddress : null, // Only include address if salon requires it
         status: 'confirmed'
       };
 
@@ -539,7 +548,7 @@ export default function BookingSummaryPage() {
         <div className="text-center max-w-md">
           <h2 className="text-xl font-medium mb-6 text-gray-900">No salon or services selected</h2>
           <button
-            className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors"
+            className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors rounded"
             onClick={() => router.push("/salons")}
           >
             Browse Salons
@@ -613,10 +622,22 @@ export default function BookingSummaryPage() {
                           );
                         }}
                       >
-                        <div className="flex items-center mb-2">
-                          <FiUser className="w-4 h-4 text-gray-600 mr-2" />
+                        <div className="flex items-center mb-2 gap-3">
+                          {/* Show employee image if available */}
+                          {emp.imageUrl && (
+                            <img
+                              src={emp.imageUrl}
+                              alt={emp.name}
+                              className="w-10 h-10 object-cover rounded-full border"
+                            />
+                          )}
+                          <FiUser className="w-4 h-4 text-gray-600" />
                           <span className="font-medium text-gray-900">{emp.name}</span>
                         </div>
+                        {/* Show employee description if available */}
+                        {emp.description && (
+                          <div className="text-xs text-gray-500 mb-1">{emp.description}</div>
+                        )}
                         <div className="text-xs text-gray-500">
                           Verfügbar für diese Dienstleistung
                         </div>
@@ -633,7 +654,7 @@ export default function BookingSummaryPage() {
             </div>
             <div className="flex justify-end">
               <button
-                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 rounded"
                 onClick={() => setStep('datetime')}
                 disabled={!serviceSelections.every(sel => sel.employee)}
               >
@@ -747,16 +768,15 @@ export default function BookingSummaryPage() {
                 )}
               </div>
             </div>
-
             <div className="flex justify-between mt-8">
               <button
-                className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors"
+                className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors rounded"
                 onClick={() => setStep('professional')}
               >
                 Zurück zu Mitarbeiter
               </button>
               <button
-                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 rounded"
                 onClick={() => setStep('summary')}
                 disabled={!selectedDate || !selectedTime || !allEmployeesSelected}
               >
@@ -804,13 +824,13 @@ export default function BookingSummaryPage() {
 
               {/* Services & Total */}
               <div className="lg:col-span-1">
-                <div className="border border-gray-200 p-6 space-y-6 rounded-lg bg-gray-50">
+                <div className="border border-gray-200 p-6 space-y-6 rounded-lg bg-gray-50 w-full min-w-[340px] max-w-xs mx-auto">
                   <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider">Dienstleistungen</h3>
                   <div className="space-y-4">
                     {serviceSelections.map(sel => (
                       <div key={sel.service._id} className="flex flex-col py-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-700">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-sm text-gray-700 max-w-[120px] truncate">
                             {sel.service.name}
                             {sel.service.selectedOption && (
                               <span className="ml-2 text-xs text-gray-600">
@@ -828,7 +848,7 @@ export default function BookingSummaryPage() {
                             </button>
                           </span>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-gray-500 mt-1 max-w-[120px] truncate">
                           Mitarbeiter: {sel.employee?.name || "Nicht ausgewählt"}
                         </div>
                       </div>
@@ -868,6 +888,65 @@ export default function BookingSummaryPage() {
                         style={{ color: "#000" }}
                       />
                     </div>
+                    
+                    {/* Customer Address Fields - Only show if salon requires it */}
+                    {salon?.storeCustomerAddress && (
+                      <div className="space-y-3">
+                        <h5 className="text-sm font-medium text-gray-700">Adresse*</h5>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="col-span-2">
+                            <input
+                              type="text"
+                              value={customerAddress.street}
+                              onChange={e => setCustomerAddress(prev => ({ ...prev, street: e.target.value }))
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                              placeholder="Straße"
+                              required
+                              style={{ color: "#000" }}
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="text"
+                              value={customerAddress.number}
+                              onChange={e => setCustomerAddress(prev => ({ ...prev, number: e.target.value }))
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                              placeholder="Nr."
+                              required
+                              style={{ color: "#000" }}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <input
+                              type="text"
+                              value={customerAddress.zip}
+                              onChange={e => setCustomerAddress(prev => ({ ...prev, zip: e.target.value }))
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                              placeholder="PLZ"
+                              required
+                              style={{ color: "#000" }}
+                            />
+                          </div>
+                          <div>
+                            <input
+                              type="text"
+                              value={customerAddress.country}
+                              onChange={e => setCustomerAddress(prev => ({ ...prev, country: e.target.value }))
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+                              placeholder="Land"
+                              required
+                              style={{ color: "#000" }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -875,15 +954,15 @@ export default function BookingSummaryPage() {
 
             <div className="flex justify-between mt-8">
               <button
-                className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors"
+                className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors rounded"
                 onClick={() => setStep('datetime')}
               >
                 Zurück zu Datum & Uhrzeit
               </button>
               <button
-                className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white py-3 px-6 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white py-3 px-6 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 rounded"
                 onClick={createBooking}
-                disabled={loading || !customerName.trim() || !customerPhone.trim()}
+                disabled={loading || !isCustomerInfoValid}
               >
                 {loading ? 'Bestätige...' : 'Buchung bestätigen'}
               </button>
@@ -907,6 +986,9 @@ export default function BookingSummaryPage() {
               <div className="space-y-2 text-sm text-gray-700 mb-6">
                 <p><strong>Kunde:</strong> {customerName}</p>
                 <p><strong>Telefon:</strong> {customerPhone}</p>
+                {salon?.storeCustomerAddress && customerAddress.street && (
+                  <p><strong>Adresse:</strong> {customerAddress.street} {customerAddress.number}, {customerAddress.zip} {customerAddress.country}</p>
+                )}
                 <p><strong>Salon:</strong> {salon.name}</p>
                 <p><strong>Datum & Uhrzeit:</strong> {selectedDate && (() => {
                   const [year, month, day] = selectedDate.split('-').map(Number);
@@ -917,7 +999,7 @@ export default function BookingSummaryPage() {
                 <p><strong>Gesamt:</strong> €{total}</p>
               </div>
               <button
-                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors"
+                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors rounded"
                 onClick={() => router.push('/salons')}
               >
                 Weitere Salons ansehen

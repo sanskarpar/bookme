@@ -49,7 +49,11 @@ export default function SettingsPage() {
     googleMapsAddress?: string;
     workingDays?: { [key: string]: { open: boolean; start: string; end: string } };
     holidays?: string[];
+    disableBookingHistory?: boolean;
+    storeCustomerAddress?: boolean;
   } | null>(null);
+  const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState<boolean>(false);
   const [salonName, setSalonName] = useState("");
   const [salonDescription, setSalonDescription] = useState("");
   const [salonLocation, setSalonLocation] = useState("");
@@ -64,6 +68,22 @@ export default function SettingsPage() {
   );
   const [holidays, setHolidays] = useState<string[]>([]);
   const [newHoliday, setNewHoliday] = useState("");
+  // Add new state for holiday range
+  const [holidayRangeStart, setHolidayRangeStart] = useState("");
+  const [holidayRangeEnd, setHolidayRangeEnd] = useState("");
+  const [disableBookingHistory, setDisableBookingHistory] = useState(false);
+  const [storeCustomerAddress, setStoreCustomerAddress] = useState(false);
+
+  // Only update disableBookingHistory when salon changes, not on every render
+  useEffect(() => {
+    if (salon && typeof salon.disableBookingHistory === "boolean") {
+      setDisableBookingHistory(!!salon.disableBookingHistory);
+    }
+    if (salon && typeof salon.storeCustomerAddress === "boolean") {
+      setStoreCustomerAddress(!!salon.storeCustomerAddress);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [salon?.disableBookingHistory, salon?.storeCustomerAddress]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -71,24 +91,61 @@ export default function SettingsPage() {
       if (firebaseUser?.email) {
         setLoading(true);
         try {
-          const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
-          if (!res.ok) throw new Error("Salon nicht gefunden.");
-          const data = await res.json();
-          const salonData = data.salon ?? data; // fallback for old API
-          setSalon(salonData);
-          setSalonName(salonData.name);
-          setSalonDescription(salonData.description ?? "");
-          setSalonLocation(salonData.location ?? "");
-          setGoogleMapsAddress(salonData.googleMapsAddress ?? "");
-          setSalonContact(salonData.contact ?? "");
-          setImagePreviews(
-            salonData.imageUrls || salonData.imageUrl
-              ? (salonData.imageUrls ?? [salonData.imageUrl]).filter(Boolean)
-              : []
-          );
-          setImageFiles([]); // Reset files on load
-          setWorkingDays(salonData.workingDays ?? Object.fromEntries(WEEKDAYS.map(day => [day, { open: day !== "Sonntag", start: "09:00", end: "18:00" }])));
-          setHolidays(salonData.holidays ?? []);
+          // Check if this is system admin viewing another salon's settings
+          const urlParams = new URLSearchParams(window.location.search);
+          const salonUidParam = urlParams.get('salonUid');
+          const isSystemUser = firebaseUser.email === "system@gmail.com";
+          setIsSystemAdmin(isSystemUser);
+          
+          if (salonUidParam && isSystemUser) {
+            // System admin viewing specific salon settings
+            setViewingSalonUid(salonUidParam);
+            
+            // Fetch the specific salon data
+            const salonRes = await fetch(`/api/salons?uid=${encodeURIComponent(salonUidParam)}`);
+            if (salonRes.ok) {
+              const salonData = await salonRes.json();
+              const salon = salonData.salon;
+              setSalon(salon);
+              setSalonName(salon.name);
+              setSalonDescription(salon.description ?? "");
+              setSalonLocation(salon.location ?? "");
+              setGoogleMapsAddress(salon.googleMapsAddress ?? "");
+              setSalonContact(salon.contact ?? "");
+              setImagePreviews(
+                salon.imageUrls || salon.imageUrl
+                  ? (salon.imageUrls ?? [salon.imageUrl]).filter(Boolean)
+                  : []
+              );
+              setImageFiles([]);
+              setWorkingDays(salon.workingDays ?? Object.fromEntries(WEEKDAYS.map(day => [day, { open: day !== "Sonntag", start: "09:00", end: "18:00" }])));
+              setHolidays(salon.holidays ?? []);
+              // Add storeCustomerAddress initialization
+              setStoreCustomerAddress(!!salon.storeCustomerAddress);
+            }
+          } else {
+            // Normal flow for salon users
+            const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
+            if (!res.ok) throw new Error("Salon nicht gefunden.");
+            const data = await res.json();
+            const salonData = data.salon ?? data;
+            setSalon(salonData);
+            setSalonName(salonData.name);
+            setSalonDescription(salonData.description ?? "");
+            setSalonLocation(salonData.location ?? "");
+            setGoogleMapsAddress(salonData.googleMapsAddress ?? "");
+            setSalonContact(salonData.contact ?? "");
+            setImagePreviews(
+              salonData.imageUrls || salonData.imageUrl
+                ? (salonData.imageUrls ?? [salonData.imageUrl]).filter(Boolean)
+                : []
+            );
+            setImageFiles([]);
+            setWorkingDays(salonData.workingDays ?? Object.fromEntries(WEEKDAYS.map(day => [day, { open: day !== "Sonntag", start: "09:00", end: "18:00" }])));
+            setHolidays(salonData.holidays ?? []);
+            // Add storeCustomerAddress initialization
+            setStoreCustomerAddress(!!salonData.storeCustomerAddress);
+          }
         } catch (err) {
           setStatus("Fehler beim Laden des Salons.");
         } finally {
@@ -166,6 +223,28 @@ export default function SettingsPage() {
     }
   };
 
+  // Add handler for adding a range of holidays
+  const handleAddHolidayRange = () => {
+    if (!holidayRangeStart || !holidayRangeEnd) return;
+    const start = new Date(holidayRangeStart);
+    const end = new Date(holidayRangeEnd);
+    if (end < start) return;
+    const dates: string[] = [];
+    let d = new Date(start);
+    while (d <= end) {
+      const dateStr = d.toISOString().slice(0, 10);
+      if (!holidays.includes(dateStr)) {
+        dates.push(dateStr);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    if (dates.length > 0) {
+      setHolidays(prev => [...prev, ...dates]);
+    }
+    setHolidayRangeStart("");
+    setHolidayRangeEnd("");
+  };
+
   const handleRemoveHoliday = (date: string) => {
     setHolidays(prev => prev.filter(d => d !== date));
   };
@@ -211,7 +290,9 @@ export default function SettingsPage() {
           contact: salonContact,
           imageUrls,
           workingDays,
-          holidays
+          holidays,
+          disableBookingHistory,
+          storeCustomerAddress // Add the new setting
         }),
       });
       if (!res.ok) throw new Error("Update fehlgeschlagen.");
@@ -225,7 +306,9 @@ export default function SettingsPage() {
         contact: salonContact,
         imageUrls,
         workingDays,
-        holidays
+        holidays,
+        disableBookingHistory,
+        storeCustomerAddress // Update local state
       });
       setImageFiles([]);
       setImagePreviews(imageUrls); // Update previews to match backend
@@ -251,7 +334,7 @@ export default function SettingsPage() {
   if (!user) {
     return (
       <>
-        <Navbar user={user} />
+        <Navbar user={user} viewingSalonUid={viewingSalonUid} />
         <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
           <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
             <h2 className="text-xl font-semibold text-black mb-2">Bitte einloggen</h2>
@@ -264,13 +347,16 @@ export default function SettingsPage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/settings" />
+      <Navbar user={user} currentPath="/admin/settings" viewingSalonUid={viewingSalonUid} />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-4xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
           {/* Header */}
           <div className="mb-8 text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2">
               Salon Einstellungen
+              {viewingSalonUid && isSystemAdmin && (
+                <span className="text-lg text-gray-600 block mt-1">(System-Ansicht für {salon?.name})</span>
+              )}
             </h1>
             <p className="text-black text-base sm:text-lg">
               Verwalten Sie Ihren Salon und aktualisieren Sie Ihre Informationen
@@ -319,7 +405,7 @@ export default function SettingsPage() {
                 className="w-full px-3 py-2 sm:px-4 sm:py-3 rounded-md border border-gray-300 focus:border-primary-600 focus:ring-2 focus:ring-primary-100 text-black text-base outline-none transition"
                 placeholder="Adresse oder Stadt"
               />
-              {/* Google Maps Address */}
+              {/* Google Maps Adresse */}
               <label className="block text-black font-medium mt-4 mb-2">
                 Google Maps Adresse
               </label>
@@ -497,6 +583,7 @@ export default function SettingsPage() {
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-primary-600 text-white font-bold">F</span>
                 Feiertage & Schließtage
               </h3>
+              {/* Single day holiday */}
               <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 mb-4">
                 <input
                   type="date"
@@ -514,9 +601,39 @@ export default function SettingsPage() {
                   + Feiertag hinzufügen
                 </button>
               </div>
+              {/* Range holiday */}
+              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 mb-4">
+                <input
+                  type="date"
+                  value={holidayRangeStart}
+                  onChange={e => setHolidayRangeStart(e.target.value)}
+                  className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white font-semibold shadow-sm w-full sm:w-auto"
+                  style={{ color: "#000" }}
+                  placeholder="Startdatum"
+                />
+                <span className="text-black font-semibold">bis</span>
+                <input
+                  type="date"
+                  value={holidayRangeEnd}
+                  onChange={e => setHolidayRangeEnd(e.target.value)}
+                  className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white font-semibold shadow-sm w-full sm:w-auto"
+                  style={{ color: "#000" }}
+                  placeholder="Enddatum"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddHolidayRange}
+                  className="bg-primary-600 hover:bg-primary-700 px-4 sm:px-5 py-2 rounded-md font-semibold shadow-sm transition w-full sm:w-auto"
+                  style={{ color: "#000" }}
+                >
+                  + Zeitraum als Feiertage
+                </button>
+              </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {holidays.length === 0 && <span className="text-black text-sm">Keine Feiertage eingetragen.</span>}
-                {holidays.map(date => (
+                {holidays
+                  .sort()
+                  .map(date => (
                   <span key={date} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full text-black font-medium shadow-sm">
                     <span>{date}</span>
                     <button
@@ -531,7 +648,58 @@ export default function SettingsPage() {
                 ))}
               </div>
               <div className="text-xs text-black mt-3">
-                Sie können spezielle Schließtage oder Feiertage deklarieren.
+                Sie können spezielle Schließtage oder Feiertage deklarieren. Um einen Zeitraum zu blockieren, wählen Sie Start- und Enddatum und klicken Sie auf <b>+ Zeitraum als Feiertage</b>.
+              </div>
+            </div>
+
+            {/* Booking History Tracking Toggle */}
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-base sm:text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-primary-600 text-white font-bold">B</span>
+                Buchungshistorie-Einstellungen
+              </h3>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!disableBookingHistory}
+                    onChange={e => setDisableBookingHistory(!e.target.checked)}
+                    className="accent-primary-600 w-5 h-5"
+                  />
+                  <span className="text-black font-medium">
+                    Buchungshistorie anzeigen/tracken
+                  </span>
+                </label>
+                <span className="text-xs text-gray-500">
+                  Wenn deaktiviert, können Sie Ihre Buchungshistorie nicht einsehen.
+                </span>
+              </div>
+            </div>
+
+            {/* Customer Address Storage Toggle */}
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-base sm:text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-primary-600 text-white font-bold">A</span>
+                Kundenadress-Einstellungen
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={storeCustomerAddress}
+                      onChange={e => setStoreCustomerAddress(e.target.checked)}
+                      className="accent-primary-600 w-5 h-5"
+                    />
+                    <span className="text-black font-medium">
+                      Kundenadresse beim Buchen erfassen
+                    </span>
+                  </label>
+                </div>
+                <div className="text-xs text-gray-600">
+                  Wenn aktiviert, können Kunden ihre Adresse (Straße, Hausnummer, PLZ, Land) beim Buchungsprozess eingeben. 
+                  Diese Informationen werden gespeichert und sind in Ihrer Buchungsübersicht verfügbar.
+                </div>
               </div>
             </div>
 

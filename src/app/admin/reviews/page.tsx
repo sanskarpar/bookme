@@ -73,6 +73,8 @@ export default function ReviewsPage() {
   const [filteredReviews, setFilteredReviews] = useState<Review[]>([]);
   const [filterRating, setFilterRating] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'rating-high' | 'rating-low'>('newest');
+  const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
 
   // Get current user and fetch salon info
   useEffect(() => {
@@ -81,28 +83,52 @@ export default function ReviewsPage() {
       if (firebaseUser?.email) {
         setLoading(true);
         try {
-          // Fetch user role
-          const userRes = await fetch(`/api/users?email=${encodeURIComponent(firebaseUser.email)}`);
-          if (userRes.ok) {
-            const userData = await userRes.json();
-            const role = typeof userData.role === "string"
-              ? userData.role.trim().toLowerCase()
-              : null;
-            setUserRole(role);
+          // Check if this is system admin viewing another salon's reviews
+          const urlParams = new URLSearchParams(window.location.search);
+          const salonUidParam = urlParams.get('salonUid');
+          const isSystemUser = firebaseUser.email === "system@gmail.com";
+          setIsSystemAdmin(isSystemUser);
+          
+          if (salonUidParam && isSystemUser) {
+            // System admin viewing specific salon reviews
+            setViewingSalonUid(salonUidParam);
+            setUserRole("system");
+            
+            // Fetch the specific salon data
+            const salonRes = await fetch(`/api/salons?uid=${encodeURIComponent(salonUidParam)}`);
+            if (salonRes.ok) {
+              const salonData = await salonRes.json();
+              setSalon(salonData.salon);
+              
+              if (salonData.salon?.uid) {
+                await fetchReviews(salonData.salon.uid);
+              }
+            }
           } else {
-            setUserRole(null);
-          }
-          
-          // Fetch salon info
-          const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
-          if (!res.ok) throw new Error("Salon not found");
-          const data = await res.json();
-          
-          const salonData = data.salon || data;
-          setSalon(salonData);
-          
-          if (salonData?.uid) {
-            await fetchReviews(salonData.uid);
+            // Normal salon user
+            // Fetch user role
+            const userRes = await fetch(`/api/users?email=${encodeURIComponent(firebaseUser.email)}`);
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              const role = typeof userData.role === "string"
+                ? userData.role.trim().toLowerCase()
+                : null;
+              setUserRole(role);
+            } else {
+              setUserRole(null);
+            }
+            
+            // Fetch salon info
+            const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
+            if (!res.ok) throw new Error("Salon not found");
+            const data = await res.json();
+            
+            const salonData = data.salon || data;
+            setSalon(salonData);
+            
+            if (salonData?.uid) {
+              await fetchReviews(salonData.uid);
+            }
           }
           
         } catch (err) {
@@ -294,7 +320,7 @@ export default function ReviewsPage() {
     return <AuthPrompt />;
   }
 
-  if (userRole && userRole !== "salon") {
+  if (userRole && userRole !== "salon" && !isSystemAdmin) {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
         <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
@@ -307,12 +333,16 @@ export default function ReviewsPage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/reviews" />
+      <Navbar user={user} currentPath="/admin/reviews" viewingSalonUid={viewingSalonUid} />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Bewertungen & Rezensionen</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Bewertungen & Rezensionen
+              {viewingSalonUid && isSystemAdmin && (
+                <span className="text-lg text-gray-600 block mt-1">(System-Ansicht für {salon?.name})</span>
+              )}
+            </h1>
             <p className="text-gray-600">Verwalten und analysieren Sie Kundenfeedback für {salon?.name}</p>
           </div>
 

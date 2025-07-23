@@ -266,8 +266,9 @@ export default function ServicesPage() {
   >([]);
   const [expandedEmployeeIdx, setExpandedEmployeeIdx] = useState<number | null>(null);
   const [salon, setSalon] = useState<any>(null);
-  // Add a state to detect mobile
   const [isMobile, setIsMobile] = useState(false);
+  const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const addServiceRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -282,26 +283,59 @@ export default function ServicesPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser?.uid) {
-        const userDoc = await fetchUserByUid(firebaseUser.uid);
-        setUser(userDoc);
-        // Fetch salon data to get employees
-        if (firebaseUser.email) {
+        // Check if this is system admin viewing another salon's services
+        const urlParams = new URLSearchParams(window.location.search);
+        const salonUidParam = urlParams.get('salonUid');
+        const isSystemUser = firebaseUser.email === "system@gmail.com";
+        setIsSystemAdmin(isSystemUser);
+        
+        if (salonUidParam && isSystemUser) {
+          // System admin viewing specific salon services
+          setViewingSalonUid(salonUidParam);
+          
+          // Fetch the specific salon data
           try {
-            const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
-            if (res.ok) {
-              const data = await res.json();
-              const salonData = data.salon ?? data;
-              setSalon(salonData);
+            const salonRes = await fetch(`/api/salons?uid=${encodeURIComponent(salonUidParam)}`);
+            if (salonRes.ok) {
+              const salonData = await salonRes.json();
+              setSalon(salonData.salon);
               setEmployees(
-                (salonData.employees ?? []).map((emp: any) => ({
+                (salonData.salon.employees ?? []).map((emp: any) => ({
                   ...emp,
                   holidays: emp.holidays ?? [],
                   services: emp.services ?? []
                 }))
               );
+              
+              // Set a mock user with the salon UID for service operations
+              setUser({ uid: salonUidParam, email: firebaseUser.email });
             }
           } catch (err) {
             console.error('Failed to fetch salon data:', err);
+          }
+        } else {
+          // Normal flow for salon users
+          const userDoc = await fetchUserByUid(firebaseUser.uid);
+          setUser(userDoc);
+          
+          if (firebaseUser.email) {
+            try {
+              const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
+              if (res.ok) {
+                const data = await res.json();
+                const salonData = data.salon ?? data;
+                setSalon(salonData);
+                setEmployees(
+                  (salonData.employees ?? []).map((emp: any) => ({
+                    ...emp,
+                    holidays: emp.holidays ?? [],
+                    services: emp.services ?? []
+                  }))
+                );
+              }
+            } catch (err) {
+              console.error('Failed to fetch salon data:', err);
+            }
           }
         }
       } else {
@@ -424,13 +458,19 @@ export default function ServicesPage() {
 
   return (
     <>
-      <Navbar user={user ? { email: user.email ?? null } : undefined} />
+      <Navbar 
+        user={user ? { email: user.email ?? null } : undefined} 
+        viewingSalonUid={viewingSalonUid}
+      />
       <main className="min-h-screen bg-gray-50 font-inter p-0">
         <div className="max-w-6xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
           {/* Header */}
           <div className="mb-8 text-center px-2 sm:px-0">
             <h1 className="text-3xl font-bold text-black mb-2 font-inter">
               Dienstleistungen verwalten
+              {viewingSalonUid && isSystemAdmin && (
+                <span className="text-lg text-gray-600 block mt-1">(System-Ansicht für {salon?.name})</span>
+              )}
             </h1>
             <p className="text-black font-inter">
               Fügen Sie Dienstleistungen hinzu, bearbeiten oder entfernen Sie sie aus Ihrem Salonangebot.

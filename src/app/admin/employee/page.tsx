@@ -48,21 +48,29 @@ export default function EmployeePage() {
       schedule: { [key: string]: { open: boolean; start: string; end: string } };
       holidays?: string[];
       services?: string[];
+      imageUrl?: string;
+      description?: string;
     }[];
   } | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [workingDays, setWorkingDays] = useState<{ [key: string]: { open: boolean; start: string; end: string } }>(() =>
-    Object.fromEntries(WEEKDAYS.map(day => [day, { open: day !== "Sonntag", start: "09:00", end: "18:00" }]))
+  const [workingDays, setWorkingDays] = useState<{ [key: string]: { open: boolean; start: string; end: string } }>(
+    () => Object.fromEntries(WEEKDAYS.map(day => [day, { open: day !== "Sonntag", start: "09:00", end: "18:00" }]))
   );
   const [employees, setEmployees] = useState<
-    { name: string; email?: string; schedule: { [key: string]: { open: boolean; start: string; end: string } }, holidays?: string[], services?: string[] }[]
+    { name: string; email?: string; schedule: { [key: string]: { open: boolean; start: string; end: string } }, holidays?: string[], services?: string[], imageUrl?: string, description?: string }[]
   >([]);
   const [newEmployeeName, setNewEmployeeName] = useState("");
   const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
   const [expandedEmployeeIdx, setExpandedEmployeeIdx] = useState<number | null>(null);
   const [newEmployeeHoliday, setNewEmployeeHoliday] = useState<{ [idx: number]: string }>({});
+  // Add state for holiday range per employee
+  const [newEmployeeHolidayRange, setNewEmployeeHolidayRange] = useState<{ [idx: number]: { start: string; end: string } }>({});
   const [services, setServices] = useState<{ _id: string; name: string }[]>([]);
+  const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
+  const [newEmployeeImage, setNewEmployeeImage] = useState<string | null>(null);
+  const [newEmployeeDescription, setNewEmployeeDescription] = useState<string>("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -70,37 +78,79 @@ export default function EmployeePage() {
       if (firebaseUser?.email) {
         setLoading(true);
         try {
-          const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
-          if (!res.ok) throw new Error("Salon nicht gefunden.");
-          const data = await res.json();
-          const salonData = data.salon ?? data;
-          setSalon(salonData);
-          setWorkingDays(salonData.workingDays ?? Object.fromEntries(WEEKDAYS.map(day => [day, { open: day !== "Sonntag", start: "09:00", end: "18:00" }])));
-          setEmployees(
-            (salonData.employees ?? []).map((emp: any) => ({
-              ...emp,
-              holidays: emp.holidays ?? [],
-              services: emp.services ?? []
-            }))
-          );
+          // Check if this is system admin viewing another salon's employees
+          const urlParams = new URLSearchParams(window.location.search);
+          const salonUidParam = urlParams.get('salonUid');
+          const isSystemUser = firebaseUser.email === "system@gmail.com";
+          setIsSystemAdmin(isSystemUser);
           
-          if (salonData.uid) {
-            try {
-              const servicesRes = await fetch(`/api/services?uid=${encodeURIComponent(salonData.uid)}`);
-              if (servicesRes.ok) {
-                const servicesData = await servicesRes.json();
-                setServices((servicesData.services ?? []).map((s: any) => ({ _id: s._id, name: s.name })));
-              } else {
-                console.error('Failed to fetch services:', servicesRes.status);
-                setServices([]);
+          if (salonUidParam && isSystemUser) {
+            // System admin viewing specific salon employees
+            setViewingSalonUid(salonUidParam);
+            
+            // Fetch the specific salon data
+            const salonRes = await fetch(`/api/salons?uid=${encodeURIComponent(salonUidParam)}`);
+            if (salonRes.ok) {
+              const salonData = await salonRes.json();
+              const salon = salonData.salon;
+              setSalon(salon);
+              setWorkingDays(salon.workingDays ?? Object.fromEntries(WEEKDAYS.map(day => [day, { open: day !== "Sonntag", start: "09:00", end: "18:00" }])));
+              setEmployees(
+                (salon.employees ?? []).map((emp: any) => ({
+                  ...emp,
+                  holidays: emp.holidays ?? [],
+                  services: emp.services ?? []
+                }))
+              );
+              
+              // Fetch services for this salon
+              if (salon.uid) {
+                try {
+                  const servicesRes = await fetch(`/api/services?uid=${encodeURIComponent(salon.uid)}`);
+                  if (servicesRes.ok) {
+                    const servicesData = await servicesRes.json();
+                    setServices((servicesData.services ?? []).map((s: any) => ({ _id: s._id, name: s.name })));
+                  }
+                } catch (error) {
+                  console.error('Error fetching services:', error);
+                  setServices([]);
+                }
               }
-            } catch (error) {
-              console.error('Error fetching services:', error);
-              setServices([]);
             }
           } else {
-            console.warn('No salon uid found, cannot fetch services');
-            setServices([]);
+            // Normal flow for salon users
+            const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
+            if (!res.ok) throw new Error("Salon nicht gefunden.");
+            const data = await res.json();
+            const salonData = data.salon ?? data;
+            setSalon(salonData);
+            setWorkingDays(salonData.workingDays ?? Object.fromEntries(WEEKDAYS.map(day => [day, { open: day !== "Sonntag", start: "09:00", end: "18:00" }])));
+            setEmployees(
+              (salonData.employees ?? []).map((emp: any) => ({
+                ...emp,
+                holidays: emp.holidays ?? [],
+                services: emp.services ?? []
+              }))
+            );
+            
+            if (salonData.uid) {
+              try {
+                const servicesRes = await fetch(`/api/services?uid=${encodeURIComponent(salonData.uid)}`);
+                if (servicesRes.ok) {
+                  const servicesData = await servicesRes.json();
+                  setServices((servicesData.services ?? []).map((s: any) => ({ _id: s._id, name: s.name })));
+                } else {
+                  console.error('Failed to fetch services:', servicesRes.status);
+                  setServices([]);
+                }
+              } catch (error) {
+                console.error('Error fetching services:', error);
+                setServices([]);
+              }
+            } else {
+              console.warn('No salon uid found, cannot fetch services');
+              setServices([]);
+            }
           }
         } catch (err) {
           setStatus("Fehler beim Laden des Salons.");
@@ -122,11 +172,15 @@ export default function EmployeePage() {
         name: newEmployeeName.trim(),
         email: newEmployeeEmail.trim() || undefined,
         schedule: getDefaultSchedule(workingDays),
-        holidays: []
+        holidays: [],
+        imageUrl: newEmployeeImage || undefined,
+        description: newEmployeeDescription || undefined,
       }
     ]);
     setNewEmployeeName("");
     setNewEmployeeEmail("");
+    setNewEmployeeImage(null);
+    setNewEmployeeDescription("");
   };
 
   const handleRemoveEmployee = (idx: number) => {
@@ -171,6 +225,29 @@ export default function EmployeePage() {
     setNewEmployeeHoliday(prev => ({ ...prev, [idx]: value }));
   };
 
+  const handleEmployeeHolidayRangeChange = (idx: number, field: "start" | "end", value: string) => {
+    setNewEmployeeHolidayRange(prev => ({
+      ...prev,
+      [idx]: {
+        ...prev[idx],
+        [field]: value
+      }
+    }));
+  };
+
+  // Helper to get all dates in a range (inclusive)
+  function getDatesInRange(start: string, end: string): string[] {
+    const dates: string[] = [];
+    if (!start || !end) return dates;
+    let current = new Date(start);
+    const endDate = new Date(end);
+    while (current <= endDate) {
+      dates.push(current.toISOString().slice(0, 10));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }
+
   const handleAddEmployeeHoliday = (idx: number) => {
     const date = newEmployeeHoliday[idx];
     if (!date) return;
@@ -183,6 +260,21 @@ export default function EmployeePage() {
       return updated;
     });
     setNewEmployeeHoliday(prev => ({ ...prev, [idx]: "" }));
+  };
+
+  const handleAddEmployeeHolidayRange = (idx: number) => {
+    const range = newEmployeeHolidayRange[idx];
+    if (!range?.start || !range?.end) return;
+    const dates = getDatesInRange(range.start, range.end);
+    if (dates.length === 0) return;
+    setEmployees(prev => {
+      const updated = [...prev];
+      if (!updated[idx].holidays) updated[idx].holidays = [];
+      const newHolidays = dates.filter(date => !updated[idx].holidays!.includes(date));
+      updated[idx].holidays = [...updated[idx].holidays!, ...newHolidays];
+      return updated;
+    });
+    setNewEmployeeHolidayRange(prev => ({ ...prev, [idx]: { start: "", end: "" } }));
   };
 
   const handleRemoveEmployeeHoliday = (idx: number, date: string) => {
@@ -234,6 +326,38 @@ export default function EmployeePage() {
     }
   };
 
+  // Handle image upload and convert to base64
+  const handleEmployeeImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setNewEmployeeImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle editing image/description for existing employees
+  const handleEditEmployeeImage = (idx: number, file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      setEmployees(prev => {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], imageUrl: reader.result as string };
+        return updated;
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleEditEmployeeDescription = (idx: number, value: string) => {
+    setEmployees(prev => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], description: value };
+      return updated;
+    });
+  };
+
   if (loading) {
     return (
       <>
@@ -251,7 +375,7 @@ export default function EmployeePage() {
   if (!user) {
     return (
       <>
-        <Navbar user={user} />
+        <Navbar user={user} viewingSalonUid={viewingSalonUid} />
         <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
           <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
             <h2 className="text-xl font-semibold text-black mb-2">Bitte einloggen</h2>
@@ -264,13 +388,16 @@ export default function EmployeePage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/employee" />
+      <Navbar user={user} currentPath="/admin/employee" viewingSalonUid={viewingSalonUid} />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-4xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
           {/* Header */}
           <div className="mb-8 text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2">
               Mitarbeiter Verwaltung
+              {viewingSalonUid && isSystemAdmin && (
+                <span className="text-lg text-gray-600 block mt-1">(System-Ansicht für {salon?.name})</span>
+              )}
             </h1>
             <p className="text-black text-base sm:text-lg">
               Verwalten Sie Ihre Mitarbeiter, deren Arbeitszeiten und Services
@@ -317,6 +444,14 @@ export default function EmployeePage() {
                 <div key={idx} className="mb-6 border rounded-lg p-4 bg-gray-50 shadow-sm">
                   <div className="flex items-center justify-between cursor-pointer gap-2" onClick={() => handleExpandEmployee(idx)}>
                     <div className="flex items-center gap-2 flex-wrap">
+                      {/* Show employee image if available */}
+                      {emp.imageUrl && (
+                        <img
+                          src={emp.imageUrl}
+                          alt={emp.name}
+                          className="w-10 h-10 object-cover rounded-full border"
+                        />
+                      )}
                       <span className="font-semibold text-black">{emp.name}</span>
                       {emp.email && (
                         <span className="text-xs text-black">({emp.email})</span>
@@ -342,6 +477,45 @@ export default function EmployeePage() {
                   </div>
                   {expandedEmployeeIdx === idx && (
                     <div className="mt-4">
+                      {/* Editable image and description */}
+                      <div className="flex items-center gap-4 mb-3">
+                        <div>
+                          <label
+                            htmlFor={`employee-image-upload-${idx}`}
+                            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-3 py-1 rounded-md shadow-sm cursor-pointer text-xs"
+                            style={{ color: "#000", display: "inline-block" }}
+                          >
+                            Upload
+                          </label>
+                          <input
+                            id={`employee-image-upload-${idx}`}
+                            type="file"
+                            accept="image/*"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (file) handleEditEmployeeImage(idx, file);
+                            }}
+                            className="hidden"
+                          />
+                        </div>
+                        {emp.imageUrl && (
+                          <img
+                            src={emp.imageUrl}
+                            alt={emp.name}
+                            className="w-12 h-12 object-cover rounded-full border"
+                          />
+                        )}
+                      </div>
+                      <div className="mb-3">
+                        <input
+                          type="text"
+                          value={emp.description || ""}
+                          onChange={e => handleEditEmployeeDescription(idx, e.target.value)}
+                          placeholder="Beschreibung (optional)"
+                          className="border rounded-md px-2 py-2 text-black font-semibold shadow-sm w-full"
+                          style={{ color: "#000" }}
+                        />
+                      </div>
                       <div className="mb-3 font-semibold text-black">Arbeitszeiten</div>
                       <div className="overflow-x-auto">
                         <table className="w-full border-collapse text-xs sm:text-base">
@@ -392,6 +566,7 @@ export default function EmployeePage() {
                       </div>
                       <div className="mb-3 font-semibold text-black mt-4">Feiertage / Urlaub</div>
                       <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                        {/* Single day holiday */}
                         <input
                           type="date"
                           value={newEmployeeHoliday[idx] ?? ""}
@@ -406,6 +581,32 @@ export default function EmployeePage() {
                           style={{ color: "#000" }}
                         >
                           + Urlaubstag
+                        </button>
+                      </div>
+                      {/* Holiday range - moved below */}
+                      <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                        <input
+                          type="date"
+                          value={newEmployeeHolidayRange[idx]?.start ?? ""}
+                          onChange={e => handleEmployeeHolidayRangeChange(idx, "start", e.target.value)}
+                          className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white font-semibold shadow-sm w-full sm:w-auto"
+                          style={{ color: "#000" }}
+                        />
+                        <span className="text-black text-xs font-semibold">bis</span>
+                        <input
+                          type="date"
+                          value={newEmployeeHolidayRange[idx]?.end ?? ""}
+                          onChange={e => handleEmployeeHolidayRangeChange(idx, "end", e.target.value)}
+                          className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white font-semibold shadow-sm w-full sm:w-auto"
+                          style={{ color: "#000" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddEmployeeHolidayRange(idx)}
+                          className="bg-primary-600 hover:bg-primary-700 px-4 sm:px-5 py-2 rounded-md font-semibold shadow-sm transition w-full sm:w-auto"
+                          style={{ color: "#000" }}
+                        >
+                          + Bereich
                         </button>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-4">
