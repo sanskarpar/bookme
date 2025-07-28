@@ -621,6 +621,8 @@ export default function BookingSummaryPage() {
                             )
                           );
                         }}
+                        // Make employee select button border radius match
+                        style={{ borderRadius: '0.5rem' }}
                       >
                         <div className="flex items-center mb-2 gap-3">
                           {/* Show employee image if available */}
@@ -654,7 +656,8 @@ export default function BookingSummaryPage() {
             </div>
             <div className="flex justify-end">
               <button
-                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 rounded"
+                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                style={{ borderRadius: '0.5rem' }}
                 onClick={() => setStep('datetime')}
                 disabled={!serviceSelections.every(sel => sel.employee)}
               >
@@ -682,7 +685,8 @@ export default function BookingSummaryPage() {
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                      className="p-1 hover:bg-gray-200 rounded"
+                      className="p-1 hover:bg-gray-200"
+                      style={{ borderRadius: '0.5rem' }}
                     >
                       <FiChevronLeft className="w-4 h-4" />
                     </button>
@@ -691,7 +695,8 @@ export default function BookingSummaryPage() {
                     </span>
                     <button
                       onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                      className="p-1 hover:bg-gray-200 rounded"
+                      className="p-1 hover:bg-gray-200"
+                      style={{ borderRadius: '0.5rem' }}
                     >
                       <FiChevronRight className="w-4 h-4" />
                     </button>
@@ -722,11 +727,12 @@ export default function BookingSummaryPage() {
                       <button
                         key={i}
                         onClick={() => isAvailable && allEmployeesSelected && setSelectedDate(dateStr)}
-                        className={`p-2 text-sm rounded transition-colors ${
+                        className={`p-2 text-sm transition-colors ${
                           isSelected ? 'bg-black text-white' :
                           isAvailable && allEmployeesSelected ? 'hover:bg-gray-200 text-gray-900' :
                           'text-gray-400 cursor-not-allowed'
                         }`}
+                        style={{ borderRadius: '0.5rem' }}
                         disabled={!isAvailable || !allEmployeesSelected}
                       >
                         {i + 1}
@@ -749,9 +755,10 @@ export default function BookingSummaryPage() {
                         <button
                           key={time}
                           onClick={() => setSelectedTime(time)}
-                          className={`p-2 text-sm rounded transition-colors ${
+                          className={`p-2 text-sm transition-colors ${
                             selectedTime === time ? 'bg-black text-white' : 'bg-white hover:bg-gray-100 text-gray-900 border border-gray-200'
                           }`}
+                          style={{ borderRadius: '0.5rem' }}
                         >
                           {time}
                         </button>
@@ -770,13 +777,15 @@ export default function BookingSummaryPage() {
             </div>
             <div className="flex justify-between mt-8">
               <button
-                className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors rounded"
+                className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors"
+                style={{ borderRadius: '0.5rem' }}
                 onClick={() => setStep('professional')}
               >
                 Zurück zu Mitarbeiter
               </button>
               <button
-                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 rounded"
+                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+                style={{ borderRadius: '0.5rem' }}
                 onClick={() => setStep('summary')}
                 disabled={!selectedDate || !selectedTime || !allEmployeesSelected}
               >
@@ -898,8 +907,7 @@ export default function BookingSummaryPage() {
                             <input
                               type="text"
                               value={customerAddress.street}
-                              onChange={e => setCustomerAddress(prev => ({ ...prev, street: e.target.value }))
-                              }
+                              onChange={e => setCustomerAddress(prev => ({ ...prev, street: e.target.value }))}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
                               placeholder="Straße"
                               required
@@ -910,8 +918,7 @@ export default function BookingSummaryPage() {
                             <input
                               type="text"
                               value={customerAddress.number}
-                              onChange={e => setCustomerAddress(prev => ({ ...prev, number: e.target.value }))
-                              }
+                              onChange={e => setCustomerAddress(prev => ({ ...prev, number: e.target.value }))}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
                               placeholder="Nr."
                               required
@@ -924,8 +931,7 @@ export default function BookingSummaryPage() {
                             <input
                               type="text"
                               value={customerAddress.zip}
-                              onChange={e => setCustomerAddress(prev => ({ ...prev, zip: e.target.value }))
-                              }
+                              onChange={e => setCustomerAddress(prev => ({ ...prev, zip: e.target.value }))}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
                               placeholder="PLZ"
                               required
@@ -936,8 +942,7 @@ export default function BookingSummaryPage() {
                             <input
                               type="text"
                               value={customerAddress.country}
-                              onChange={e => setCustomerAddress(prev => ({ ...prev, country: e.target.value }))
-                              }
+                              onChange={e => setCustomerAddress(prev => ({ ...prev, country: e.target.value }))}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
                               placeholder="Land"
                               required
@@ -954,13 +959,15 @@ export default function BookingSummaryPage() {
 
             <div className="flex justify-between mt-8">
               <button
-                className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors rounded"
+                className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors"
+                style={{ borderRadius: '0.5rem' }}
                 onClick={() => setStep('datetime')}
               >
                 Zurück zu Datum & Uhrzeit
               </button>
               <button
-                className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white py-3 px-6 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 rounded"
+                className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white py-3 px-6 text-sm font-semibold transition-colors disabled:opacity-50"
+                style={{ borderRadius: '0.5rem' }}
                 onClick={createBooking}
                 disabled={loading || !isCustomerInfoValid}
               >
@@ -999,7 +1006,8 @@ export default function BookingSummaryPage() {
                 <p><strong>Gesamt:</strong> €{total}</p>
               </div>
               <button
-                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors rounded"
+                className="bg-black text-white px-6 py-3 text-sm font-medium hover:bg-gray-800 transition-colors"
+                style={{ borderRadius: '0.5rem' }}
                 onClick={() => router.push('/salons')}
               >
                 Weitere Salons ansehen

@@ -408,7 +408,13 @@ export default function CustomersPage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/customers" viewingSalonUid={isSystemAdmin ? (salon?.uid ?? null) : undefined} />
+      <Navbar
+        user={user}
+        currentPath="/admin/customers"
+        viewingSalonUid={isSystemAdmin ? (salon?.uid ?? null) : undefined}
+        salonName={isSystemAdmin ? salon?.name : undefined}
+        salon={salon} // <-- Pass salon object here
+      />
       {/* Blur overlay when modal is open */}
       {showCustomerModal && (
         <div

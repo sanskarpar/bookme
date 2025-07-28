@@ -23,26 +23,28 @@ const COLORS = {
 };
 
 const NAV_LINKS = [
-  { name: "Analysen", href: "/admin/analytics" },
-  { name: "Buchungen", href: "/admin/bookings" },
-  { name: "Kunden", href: "/admin/customers" }, // <-- Add Customers tab
   { name: "Dashboard", href: "/admin/dashboard" },
+  { name: "Buchungen", href: "/admin/bookings" },
   { name: "Kalender", href: "/admin/calendar" },
+  { name: "Kunden", href: "/admin/customers" },
   { name: "Mitarbeiter", href: "/admin/employee" },
-  { name: "Bewertungen", href: "/admin/reviews" },
   { name: "Dienstleistungen", href: "/admin/services" },
-  { name: "Einstellungen", href: "/admin/settings" },
+  { name: "Bewertungen", href: "/admin/reviews" },
+  { name: "Analysen", href: "/admin/analytics" },
+  // { name: "Einstellungen", href: "/admin/settings" }, // Remove from main nav
 ];
 
-// Add props for user and logout
+// Add props for salon data
 type NavbarProps = {
   user?: { email?: string | null };
   onLogout?: () => void;
   currentPath?: string;
-  viewingSalonUid?: string | null; // Add this prop
+  viewingSalonUid?: string | null;
+  salonName?: string | null;
+  salon?: any; // Add salon prop
 };
 
-export default function Navbar({ user, onLogout, currentPath, viewingSalonUid }: NavbarProps) {
+export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, salonName, salon }: NavbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -127,32 +129,119 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid }:
 
   const navLinks = getNavLinks();
 
+  // Get display name for plan - simplified
+  const getPlanDisplayName = (planId: string | undefined) => {
+    if (!planId) return "Founders Plan";
+    
+    const planNames: { [key: string]: string } = {
+      "founders": "Founders Plan",
+      "startup": "Startup Plan", 
+      "grow": "Grow Plan",
+      "unicorn": "Unicorn Plan",
+      "custom": "Custom Plan"
+    };
+    
+    return planNames[planId] || "Founders Plan";
+  };
+
+  // Use salon prop directly
+  const currentPlan = getPlanDisplayName(salon?.plan || "founders");
+
   return (
     <>
-      {/* Ad Banner */}
+      {/* Announcement Bar: Only show salon name for system admin, otherwise only the announcement */}
       <div
         style={{
           width: "100%",
-          background: "#e0a96d", // softened orange
+          background: "#e0a96d",
           color: "#fff",
           textAlign: "center",
           padding: "0.7rem 0",
           fontWeight: 600,
           fontSize: "1.05rem",
           letterSpacing: 0.2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 24,
+          flexWrap: "wrap",
         }}
       >
+        {isSystemAdmin && salonName ? (
+          <span
+            style={{
+              background: "#fff",
+              color: "#e0a96d",
+              borderRadius: 8,
+              padding: "0.2rem 0.9rem",
+              fontWeight: 700,
+              fontSize: "1.08rem",
+              letterSpacing: 0.1,
+              marginRight: 12,
+              boxShadow: "0 1px 4px #0001",
+              border: "1px solid #fff7",
+              display: "inline-block",
+            }}
+          >
+            {salonName}
+          </span>
+        ) : (
+          <a
+            href="https://woocommerce.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#fff",
+              textDecoration: "underline",
+              fontWeight: 700,
+            }}
+          >
+            "Dein Google Maps Profil ist nicht optimiert und Deine Website ist veraltet, kontaktiere uns um keine Kunden zu verlieren!"
+          </a>
+        )}
+      </div>
+      {/* Permanent Plan Announcement Bar */}
+      <div
+        style={{
+          width: "100%",
+          background: "#f7f3e9",
+          color: "#5C6F68",
+          textAlign: "center",
+          padding: "0.35rem 0",
+          fontWeight: 500,
+          fontSize: "0.98rem",
+          letterSpacing: 0.1,
+          borderBottom: "1px solid #e0a96d33",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 12,
+          minHeight: 32,
+        }}
+      >
+        <span>
+          Aktueller Plan: <b>{currentPlan}</b>
+        </span>
+        <span style={{ color: "#e0a96d", fontWeight: 600 }}>
+          (Alle neuen Kunden erhalten den Founders Plan für 2 Monate kostenlos!)
+        </span>
         <a
-          href="https://woocommerce.com"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="/admin/plans"
           style={{
+            marginLeft: 16,
+            background: "#e0a96d",
             color: "#fff",
-            textDecoration: "underline",
-            fontWeight: 700,
+            borderRadius: 6,
+            padding: "0.18rem 0.8rem",
+            fontWeight: 600,
+            fontSize: "0.95rem",
+            textDecoration: "none",
+            transition: "background 0.15s",
+            border: "none",
+            cursor: "pointer",
           }}
         >
-          Eigene Salon-Seite gewünscht? Jetzt Agentur kontaktieren!
+          Upgrade anzeigen
         </a>
       </div>
       {/* Navbar */}
@@ -286,6 +375,24 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid }:
                       zIndex: 10,
                     }}
                   >
+                    <a
+          href={isSystemAdmin && viewingSalonUid ? `/admin/settings?salonUid=${encodeURIComponent(viewingSalonUid)}` : "/admin/settings"}
+          style={{
+            display: "block",
+            width: "100%",
+            background: "none",
+            border: "none",
+            color: "#333",
+            fontWeight: 500,
+            padding: "12px 16px",
+            textAlign: "left",
+            textDecoration: "none",
+            cursor: "pointer",
+            borderTop: "none",
+          }}
+        >
+          Einstellungen
+        </a>
                     <button
                       type="button"
                       onClick={() => {
@@ -424,6 +531,26 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid }:
                     {link.name}
                   </a>
                 ))}
+                {/* Add Einstellungen to mobile menu, but separated */}
+                <a
+          href={isSystemAdmin && viewingSalonUid ? `/admin/settings?salonUid=${encodeURIComponent(viewingSalonUid)}` : "/admin/settings"}
+          onClick={() => {
+            closeMobileMenu();
+          }}
+          style={{
+            display: "block",
+            color: "#5C6F68",
+            textDecoration: "none",
+            fontWeight: 500,
+            fontSize: "1rem",
+            padding: "0.75rem 0",
+            borderRadius: 6,
+            marginTop: "0.5rem",
+            borderTop: `1px solid ${COLORS.primary}15`,
+          }}
+        >
+          Einstellungen
+        </a>
               </div>
               
               {/* Mobile Auth Section */}

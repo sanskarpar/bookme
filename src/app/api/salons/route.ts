@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       lat: typeof data.lat === "number" ? data.lat : undefined,
       lng: typeof data.lng === "number" ? data.lng : undefined,
       createdAt: new Date(),
-      analyticsAccess: false, // <-- default paywall
+      plan: data.plan || "founders", // Default plan for new salons
     });
 
     await client.close();
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { email, name, imageUrl, imageUrls, description, location, contact, lat, lng, googleMapsAddress, workingDays, holidays, employees, analyticsAccess, disableBookingHistory, storeCustomerAddress } = await req.json();
+    const { email, name, imageUrl, imageUrls, description, location, contact, lat, lng, googleMapsAddress, workingDays, holidays, employees, disableBookingHistory, storeCustomerAddress, plan } = await req.json();
     if (!email) {
       return NextResponse.json({ error: 'Missing email' }, { status: 400 });
     }
@@ -140,10 +140,6 @@ export async function PATCH(req: Request) {
     if (Array.isArray(employees)) {
       updateFields.employees = employees;
     }
-    // Add analyticsAccess toggle
-    if (typeof analyticsAccess === "boolean") {
-      updateFields.analyticsAccess = analyticsAccess;
-    }
     // Add disableBookingHistory toggle
     if (typeof disableBookingHistory === "boolean") {
       updateFields.disableBookingHistory = disableBookingHistory;
@@ -151,6 +147,10 @@ export async function PATCH(req: Request) {
     // Add storeCustomerAddress toggle
     if (typeof storeCustomerAddress === "boolean") {
       updateFields.storeCustomerAddress = storeCustomerAddress;
+    }
+    // Add plan field support
+    if (typeof plan === "string") {
+      updateFields.plan = plan;
     }
     if (Object.keys(updateFields).length === 0) {
       await client.close();

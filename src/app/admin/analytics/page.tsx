@@ -55,6 +55,7 @@ function AnalyticsContent() {
   const [selectedView, setSelectedView] = useState("overview");
   const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
   
   const searchParams = useSearchParams();
 
@@ -370,6 +371,22 @@ function AnalyticsContent() {
     };
   };
 
+  useEffect(() => {
+    if (
+      userRole === "salon" &&
+      !isSystemAdmin &&
+      salon
+    ) {
+      const hasAnalyticsAccess =
+        salon.plan === "founders" ||
+        salon.plan === "unicorn" ||
+        salon.plan === "custom";
+      setShowPlanModal(!hasAnalyticsAccess);
+    } else {
+      setShowPlanModal(false);
+    }
+  }, [userRole, isSystemAdmin, salon]);
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -389,40 +406,16 @@ function AnalyticsContent() {
     );
   }
 
-  // Restrict access for salons without analytics access
-  if (
-    userRole === "salon" &&
-    !isSystemAdmin &&
-    salon &&
-    salon.analyticsAccess === false
-  ) {
-    return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
-        <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Analytics nur für Premium-Salons</h2>
-          <p className="text-gray-600 mb-4">
-            Die Analyse- und Statistikfunktionen sind nur für zahlende Salons verfügbar.<br />
-            Bitte kontaktieren Sie uns, um Analytics für Ihren Account freizuschalten.
-          </p>
-          <a
-            href="/kontakt"
-            className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2 px-4 rounded-md inline-block"
-          >
-            Kontakt aufnehmen
-          </a>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <>
       <Navbar 
         user={user} 
         currentPath="/admin/analytics" 
         viewingSalonUid={viewingSalonUid}
+        salonName={isSystemAdmin ? salon?.name : undefined}
+        salon={salon}
       />
-      <main className="min-h-screen bg-gray-50 font-sans p-0">
+      <main className={`min-h-screen bg-gray-50 font-sans p-0 transition-all duration-300 ${showPlanModal ? "filter blur-sm pointer-events-none select-none" : ""}`}>
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
@@ -716,6 +709,9 @@ function AnalyticsContent() {
         </div>
         <Footer />
       </main>
+      {showPlanModal && (
+        <PlanUpgradeModal plan={salon?.plan} />
+      )}
     </>
   );
 }
@@ -779,6 +775,41 @@ const AuthPrompt = () => (
       </button>
     </div>
   </main>
+);
+
+// Modal overlay for plan upgrade
+const PlanUpgradeModal = ({ plan }: { plan?: string }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
+    <div className="absolute inset-0 backdrop-blur-sm transition-all duration-300" />
+    <div className="relative text-center p-6 bg-white rounded-lg shadow-lg max-w-md mx-4 border-2 border-[#5C6F68]">
+      <h2 className="text-xl font-semibold text-gray-900 mb-2">Analytics nur für Premium-Pläne</h2>
+      <p className="text-gray-600 mb-4">
+        Die Analyse- und Statistikfunktionen sind nur für Founders, Unicorn und Custom Pläne verfügbar.<br />
+        Ihr aktueller Plan: <strong>{plan || "Startup"}</strong>
+      </p>
+      <p className="text-sm text-gray-500 mb-4">
+        Upgraden Sie Ihren Plan, um detaillierte Analytics und Insights zu erhalten.
+      </p>
+      <a
+        href="/admin/plans"
+        className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2 px-4 rounded-md inline-block mr-2"
+      >
+        Plan upgraden
+      </a>
+      <a
+        href="/kontakt"
+        className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md inline-block mr-2"
+      >
+        Kontakt
+      </a>
+      <button
+        onClick={() => window.history.back()}
+        className="mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md"
+      >
+        Zurück
+      </button>
+    </div>
+  </div>
 );
 
 // Main page component with Suspense boundary

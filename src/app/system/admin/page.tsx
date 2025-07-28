@@ -251,11 +251,14 @@ export default function AdminDashboard() {
         throw new Error(errMsg || "Fehler beim Erstellen des Benutzers.");
       }
 
-      // 3. Create salon in /api/salons
+      // 3. Create salon in /api/salons with default founders plan
       const salonRes = await fetch("/api/salons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: salonEmail }),
+        body: JSON.stringify({ 
+          email: salonEmail,
+          plan: "founders" // Default plan for new salons
+        }),
       });
       if (!salonRes.ok) {
         if (salonRes.status === 404) {
@@ -348,6 +351,30 @@ export default function AdminDashboard() {
     });
   };
 
+  // Add missing handlePlanChange function
+  const handlePlanChange = async (email: string, newPlan: string) => {
+    try {
+      const res = await fetch("/api/salons", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          plan: newPlan,
+        }),
+      });
+      
+      if (res.ok) {
+        setDeleteStatus(`Plan zu "${newPlan}" geändert.`);
+        fetchSalonsAndUsers(); // Refresh the salon list
+      } else {
+        const errorData = await res.json();
+        setDeleteStatus(`Fehler beim Ändern des Plans. ${errorData.error || 'Unbekannter Fehler'}`);
+      }
+    } catch (error: any) {
+      setDeleteStatus(`Fehler beim Ändern des Plans. ${error?.message || ""}`);
+    }
+  };
+
   if (isAllowed === null) {
     // Loading state
     return (
@@ -384,11 +411,45 @@ export default function AdminDashboard() {
     );
   }
 
+  // --- New: Stat cards for dashboard look ---
+  const statCards = [
+    {
+      id: "salons",
+      title: "Salons",
+      value: salons.length,
+      icon: (
+        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 21v-2a4 4 0 014-4h10a4 4 0 014 4v2M16 3.13a4 4 0 010 7.75M8 3.13a4 4 0 000 7.75" />
+        </svg>
+      ),
+    },
+    {
+      id: "users",
+      title: "Benutzer",
+      value: users.filter(u => !u.role).length,
+      icon: (
+        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M16 7a4 4 0 11-8 0 4 4 0 018 0zm6 13v-2a4 4 0 00-3-3.87M6 7a4 4 0 100 8 4 4 0 000-8z" />
+        </svg>
+      ),
+    },
+    {
+      id: "bookings",
+      title: "Buchungen",
+      value: allBookings.length,
+      icon: (
+        <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
+    },
+  ];
+
   return (
     <main
       style={{
         minHeight: "100vh",
-        background: COLORS.accent,
+        background: "#F3F4F6", // match dashboard bg
         fontFamily: "'Roboto', sans-serif",
         padding: "2rem 0",
         color: "#000",
@@ -396,35 +457,85 @@ export default function AdminDashboard() {
     >
       <div
         style={{
-          maxWidth: 900, // was 700, now wider
+          maxWidth: 1100,
           margin: "0 auto",
           background: "#fff",
-          borderRadius: 14,
-          boxShadow: `0 4px 16px ${COLORS.primary}15`,
+          borderRadius: 18,
+          boxShadow: "0 4px 24px #5C6F6815",
           padding: "2.5rem 2rem",
           color: "#000",
         }}
       >
-        <h1
+        {/* --- Header --- */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <h1
+            style={{
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 700,
+              fontSize: "2.2rem",
+              color: "#222",
+              marginBottom: 6,
+              letterSpacing: -1,
+            }}
+          >
+            Willkommen, System-Admin
+          </h1>
+          <p style={{ color: "#666", fontSize: "1.05rem" }}>
+            Übersicht & Verwaltung aller Salons, Benutzer und Buchungen
+          </p>
+        </div>
+
+        {/* --- Stat Cards --- */}
+        <div
           style={{
-            fontFamily: "'Poppins', sans-serif",
-            fontWeight: 700,
-            fontSize: "2rem",
-            color: "#000",
-            textAlign: "center",
-            marginBottom: 24,
-            letterSpacing: -1,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 24,
+            marginBottom: 36,
           }}
         >
-          Admin Dashboard
-        </h1>
+          {statCards.map(card => (
+            <div
+              key={card.id}
+              style={{
+                background: "#f9fafb",
+                borderRadius: 12,
+                padding: "1.5rem 1.2rem",
+                boxShadow: "0 1px 4px #5C6F6810",
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+              }}
+            >
+              <div style={{
+                background: "#fff",
+                borderRadius: "50%",
+                width: 44,
+                height: 44,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 1px 4px #5C6F6810",
+              }}>
+                {card.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#222" }}>{card.value}</div>
+                <div style={{ fontSize: "1rem", color: "#666", fontWeight: 500 }}>{card.title}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* --- Section: Create Salon --- */}
         <h2
           style={{
             fontWeight: 600,
             fontSize: "1.2rem",
-            color: "#000",
+            color: "#222",
             marginBottom: 16,
-            marginTop: 32,
+            marginTop: 24,
+            letterSpacing: -0.5,
           }}
         >
           Neuen Salon-Account anlegen
@@ -448,10 +559,11 @@ export default function AdminDashboard() {
               flex: 1,
               padding: "0.75rem 1rem",
               borderRadius: 8,
-              border: `1px solid ${COLORS.primary}30`,
+              border: "1px solid #CBD5E1",
               fontSize: "1rem",
-              background: "#fafafa",
+              background: "#f8fafc",
               color: "#000",
+              minWidth: 180,
             }}
             required
           />
@@ -464,10 +576,11 @@ export default function AdminDashboard() {
               flex: 1,
               padding: "0.75rem 1rem",
               borderRadius: 8,
-              border: `1px solid ${COLORS.primary}30`,
+              border: "1px solid #CBD5E1",
               fontSize: "1rem",
-              background: "#fafafa",
+              background: "#f8fafc",
               color: "#000",
+              minWidth: 180,
             }}
             required
           />
@@ -483,6 +596,7 @@ export default function AdminDashboard() {
               fontSize: "1rem",
               cursor: "pointer",
               transition: "background 0.2s",
+              boxShadow: "0 1px 4px #5C6F6810",
             }}
           >
             Salon-Account erstellen
@@ -516,13 +630,16 @@ export default function AdminDashboard() {
             {deleteStatus}
           </div>
         )}
+
+        {/* --- Section: Salon Management --- */}
         <h2
           style={{
             fontWeight: 600,
             fontSize: "1.2rem",
-            color: "#000",
+            color: "#222",
             marginBottom: 16,
             marginTop: 32,
+            letterSpacing: -0.5,
           }}
         >
           Salon-Verwaltung
@@ -540,6 +657,7 @@ export default function AdminDashboard() {
             cursor: "pointer",
             marginBottom: 16,
             transition: "background 0.2s",
+            boxShadow: "0 1px 4px #5C6F6810",
           }}
           onMouseOver={(e) => e.currentTarget.style.background = "#4a5a54"}
           onMouseOut={(e) => e.currentTarget.style.background = COLORS.primary}
@@ -644,34 +762,41 @@ export default function AdminDashboard() {
                       }}>
                         📞 {salon.contact || "Kein Kontakt"}
                       </p>
-                      {/* Analytics Access Toggle */}
-                      <div style={{ marginTop: 8 }}>
-                        <label style={{ fontSize: "0.92rem", color: "#333", fontWeight: 500 }}>
-                          <input
-                            type="checkbox"
-                            checked={!!salon.analyticsAccess}
-                            onChange={async (e) => {
-                              const newValue = e.target.checked;
-                              await fetch("/api/salons", {
-                                method: "PATCH",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  email: salon.email,
-                                  analyticsAccess: newValue,
-                                }),
-                              });
-                              // Refresh salons list
-                              fetchSalonsAndUsers();
-                            }}
-                            style={{ marginRight: 6 }}
-                          />
-                          Analytics freigeschaltet
+                      {/* Plan Management */}
+                      <div style={{ marginTop: 12 }}>
+                        <label style={{ fontSize: "0.92rem", color: "#333", fontWeight: 500, display: "block", marginBottom: 4 }}>
+                          Aktueller Plan:
                         </label>
-                        {!salon.analyticsAccess && (
-                          <span style={{ color: "#ef4444", fontSize: "0.85rem", marginLeft: 8 }}>
-                            (Paywall aktiv)
-                          </span>
-                        )}
+                        <select
+                          value={salon.plan || "founders"}
+                          onChange={async (e) => {
+                            const newPlan = e.target.value;
+                            setDeleteStatus("Plan wird geändert...");
+                            await handlePlanChange(salon.email, newPlan);
+                          }}
+                          style={{
+                            padding: "4px 8px",
+                            borderRadius: 4,
+                            border: "1px solid #ccc",
+                            fontSize: "0.85rem",
+                            color: "#000",
+                            background: "#fff",
+                          }}
+                        >
+                          <option value="founders">Founders Plan</option>
+                          <option value="startup">Startup Plan</option>
+                          <option value="grow">Grow Plan</option>
+                          <option value="unicorn">Unicorn Plan</option>
+                          <option value="custom">Custom Plan</option>
+                        </select>
+                        <div style={{ fontSize: "0.8rem", color: "#666", marginTop: 2 }}>
+                          {salon.plan === "founders" && "Alle Features inklusive"}
+                          {salon.plan === "startup" && "Basis Features, keine Analytics/Kalender"}
+                          {salon.plan === "grow" && "Mit Kalender, ohne Analytics"}
+                          {salon.plan === "unicorn" && "Alle Features inklusive"}
+                          {salon.plan === "custom" && "Individueller Plan"}
+                          {!salon.plan && "Standard: Founders Plan"}
+                        </div>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -740,13 +865,15 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* --- Section: User Management --- */}
         <h2
           style={{
             fontWeight: 600,
             fontSize: "1.2rem",
-            color: "#000",
+            color: "#222",
             marginBottom: 16,
             marginTop: 32,
+            letterSpacing: -0.5,
           }}
         >
           Benutzer-Verwaltung
@@ -769,6 +896,7 @@ export default function AdminDashboard() {
             cursor: "pointer",
             marginBottom: 16,
             transition: "background 0.2s",
+            boxShadow: "0 1px 4px #5C6F6810",
           }}
           onMouseOver={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = "#4a5a54")}
           onMouseOut={(e: React.MouseEvent<HTMLButtonElement>) => (e.currentTarget.style.background = COLORS.primary)}
@@ -1095,9 +1223,10 @@ export default function AdminDashboard() {
           style={{
             fontWeight: 600,
             fontSize: "1.2rem",
-            color: "#000",
+            color: "#222",
             marginBottom: 16,
             marginTop: 32,
+            letterSpacing: -0.5,
           }}
         >
           Buchungsüberwachung
@@ -1120,6 +1249,7 @@ export default function AdminDashboard() {
             cursor: "pointer",
             marginBottom: 16,
             transition: "background 0.2s",
+            boxShadow: "0 1px 4px #5C6F6810",
           }}
           onMouseOver={(e) => e.currentTarget.style.background = "#4a5a54"}
           onMouseOut={(e) => e.currentTarget.style.background = COLORS.primary}

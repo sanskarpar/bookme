@@ -334,7 +334,13 @@ export default function ReviewsPage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/reviews" viewingSalonUid={viewingSalonUid} />
+      <Navbar
+        user={user}
+        currentPath="/admin/reviews"
+        viewingSalonUid={viewingSalonUid}
+        salonName={isSystemAdmin ? salon?.name : undefined}
+        salon={salon} // <-- Pass salon object here
+      />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* Header */}

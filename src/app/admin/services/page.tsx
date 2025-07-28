@@ -462,6 +462,8 @@ export default function ServicesPage() {
       <Navbar 
         user={user ? { email: user.email ?? null } : undefined} 
         viewingSalonUid={viewingSalonUid}
+        salonName={isSystemAdmin ? salon?.name : undefined}
+        salon={salon} // <-- Pass salon object here
       />
       <main className="min-h-screen bg-gray-50 font-inter p-0">
         <div className="max-w-6xl mx-auto py-8 px-2 sm:px-4 lg:px-8">

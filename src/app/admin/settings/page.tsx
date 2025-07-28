@@ -350,7 +350,12 @@ export default function SettingsPage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/settings" viewingSalonUid={viewingSalonUid} />
+      <Navbar
+        user={user}
+        currentPath="/admin/settings"
+        viewingSalonUid={viewingSalonUid}
+        salonName={isSystemAdmin ? salon?.name : undefined}
+      />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-4xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
           {/* Header */}

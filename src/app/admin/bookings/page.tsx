@@ -344,7 +344,7 @@ export default function AdminBookingsPage() {
   const exportHistoryCSV = () => {
     if (!historyBookings.length) return;
     const headers = [
-      "Datum", "Uhrzeit", "Kunde", "Telefon", "Adresse", "Dienstleistungen", "Mitarbeiter", "Status", "Gesamt"
+      "Datum", "Uhrzeit", "Kunde", "Telefon", "Adresse", "Dienstleistungen", "Mitarbeiter", "Dauer", "Status", "Gesamt"
     ];
     const rows = historyBookings.map(b => [
       b.date,
@@ -357,6 +357,7 @@ export default function AdminBookingsPage() {
         : "",
       b.services.map(s => s.name).join(", "),
       b.services.map(s => s.employee).join(", "),
+      b.services.reduce((sum, s) => sum + (s.duration || 0), 0), // total duration in minutes
       b.status,
       b.total
     ]);
@@ -407,7 +408,13 @@ export default function AdminBookingsPage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/bookings" viewingSalonUid={viewingSalonUid} />
+      <Navbar
+        user={user}
+        currentPath="/admin/bookings"
+        viewingSalonUid={viewingSalonUid}
+        salonName={salon?.name}
+        salon={salon} // <-- Pass salon object here
+      />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           {/* Header */}

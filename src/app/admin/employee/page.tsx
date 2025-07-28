@@ -362,7 +362,7 @@ export default function EmployeePage() {
   if (loading) {
     return (
       <>
-        <Navbar user={user} />
+        <Navbar user={user} salonName={salon?.name} salon={salon} />
         <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mx-auto mb-4"></div>
@@ -377,7 +377,7 @@ export default function EmployeePage() {
   if (!user) {
     return (
       <>
-        <Navbar user={user} viewingSalonUid={viewingSalonUid} />
+        <Navbar user={user} viewingSalonUid={viewingSalonUid} salonName={salon?.name} salon={salon} />
         <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
           <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
             <h2 className="text-xl font-semibold text-black mb-2">Bitte einloggen</h2>
@@ -391,7 +391,13 @@ export default function EmployeePage() {
 
   return (
     <>
-      <Navbar user={user} currentPath="/admin/employee" viewingSalonUid={viewingSalonUid} />
+      <Navbar
+        user={user}
+        currentPath="/admin/employee"
+        viewingSalonUid={viewingSalonUid}
+        salonName={salon?.name}
+        salon={salon} // <-- Pass salon object here
+      />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-4xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
           {/* Header */}
@@ -613,20 +619,58 @@ export default function EmployeePage() {
                         </button>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-4">
+                        {/* Show holiday ranges as a range, but store all dates individually */}
                         {(!emp.holidays || emp.holidays.length === 0) && <span className="text-black text-sm">Keine Urlaubstage eingetragen.</span>}
-                        {emp.holidays?.map(date => (
-                          <span key={date} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full text-black font-medium shadow-sm">
-                            <span>{date}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveEmployeeHoliday(idx, date)}
-                              className="text-red-600 text-xs px-2 py-1 rounded-full hover:bg-red-50 font-bold transition"
-                              style={{ color: "#000" }}
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
+                        {emp.holidays && emp.holidays.length > 0 && (() => {
+                          // Group holidays into ranges
+                          const sorted = [...emp.holidays].sort();
+                          const ranges: { start: string, end: string }[] = [];
+                          let rangeStart = sorted[0];
+                          let prev = sorted[0];
+                          for (let i = 1; i < sorted.length; i++) {
+                            const curr = sorted[i];
+                            const prevDate = new Date(prev);
+                            prevDate.setDate(prevDate.getDate() + 1);
+                            const expected = prevDate.toISOString().slice(0, 10);
+                            if (curr !== expected) {
+                              ranges.push({ start: rangeStart, end: prev });
+                              rangeStart = curr;
+                            }
+                            prev = curr;
+                          }
+                          ranges.push({ start: rangeStart, end: prev });
+                          return ranges.map(({ start, end }) => (
+                            <span key={start + "-" + end} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full text-black font-medium shadow-sm">
+                              <span>
+                                {start === end
+                                  ? start
+                                  : `${start} bis ${end}`}
+                              </span>
+                              {/* Remove all dates in this range */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const datesToRemove: string[] = [];
+                                  let d = new Date(start);
+                                  const endDate = new Date(end);
+                                  while (d <= endDate) {
+                                    datesToRemove.push(d.toISOString().slice(0, 10));
+                                    d.setDate(d.getDate() + 1);
+                                  }
+                                  setEmployees(prev => {
+                                    const updated = [...prev];
+                                    updated[idx].holidays = updated[idx].holidays?.filter(date => !datesToRemove.includes(date)) ?? [];
+                                    return updated;
+                                  });
+                                }}
+                                className="text-red-600 text-xs px-2 py-1 rounded-full hover:bg-red-50 font-bold transition"
+                                style={{ color: "#000" }}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ));
+                        })()}
                       </div>
                       <div className="mb-3 font-semibold text-black">Services</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">

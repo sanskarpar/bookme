@@ -5,6 +5,7 @@ import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
 import Footer from "@/components/footer";
 import { FiCalendar, FiDollarSign, FiTrendingUp, FiStar, FiClock, FiUser, FiScissors } from "react-icons/fi";
+import { FaEuroSign } from "react-icons/fa";
 
 // Constants
 const COLORS = {
@@ -334,7 +335,7 @@ export default function SalonDashboard() {
             id: 'revenue',
             title: 'Tageseinnahmen',
             value: `€${todayRevenue}`,
-            icon: <FiDollarSign size={24} />
+            icon: <FaEuroSign size={24} /> // use FaEuroSign instead of FiEuro
           },
           {
             id: 'popular',
@@ -476,6 +477,8 @@ export default function SalonDashboard() {
         user={user} 
         currentPath="/admin/dashboard" 
         viewingSalonUid={viewingSalonUid}
+        salonName={isSystemAdmin ? salon?.name : undefined}
+        salon={salon}
       />
       <main className="min-h-screen bg-gray-50 font-sans p-0">
         <div className="max-w-6xl mx-auto py-6 px-2 sm:px-4 lg:px-8">
@@ -543,7 +546,7 @@ export default function SalonDashboard() {
                           </td>
                           <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
                             {booking.status === 'upcoming' && (
-                              <div className="space-x-1 sm:space-x-2 flex flex-col sm:flex-row gap-1 sm:gap-0">
+                              <div className="flex flex-col sm:flex-row gap-1 sm:gap-0 justify-end items-end">
                                 <button
                                   onClick={() => handleBookingAction(booking.id, 'complete')}
                                   className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-2 sm:px-3 py-1 rounded-md text-xs font-medium"
@@ -583,26 +586,6 @@ export default function SalonDashboard() {
               </div>
             </div>
           </section>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-            {/* Calendar Widget */}
-            <section className="bg-white p-4 sm:p-6 rounded-lg shadow-sm mb-6 lg:mb-0">
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
-                    <FiCalendar className="mr-2" /> Buchungskalender
-                  </h2>
-                  <p className="text-gray-500 mt-1 text-xs sm:text-sm">
-                    {'Heutige Termine'}
-                  </p>
-                </div>
-              </div>
-              <CalendarWidget 
-                bookings={calendarBookings} 
-                isExpanded={false}
-                salon={salon}
-              />
-            </section>
-          </div>
         </div>
         <Footer />
       </main>

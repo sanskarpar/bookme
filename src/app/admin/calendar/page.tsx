@@ -37,6 +37,7 @@ export default function CalendarPage() {
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [showHolidayModal, setShowHolidayModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [showPlanModal, setShowPlanModal] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -121,6 +122,20 @@ export default function CalendarPage() {
     setShowHolidayModal(true);
   };
 
+  // Plan-based calendar access check (blurred sneak peek modal)
+  useEffect(() => {
+    if (salon && !isSystemAdmin) {
+      const hasCalendarAccess =
+        salon.plan === "founders" ||
+        salon.plan === "grow" ||
+        salon.plan === "unicorn" ||
+        salon.plan === "custom";
+      setShowPlanModal(!hasCalendarAccess);
+    } else {
+      setShowPlanModal(false);
+    }
+  }, [salon, isSystemAdmin]);
+
   if (loading) {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans px-2">
@@ -152,8 +167,10 @@ export default function CalendarPage() {
         user={user} 
         currentPath="/admin/calendar" 
         viewingSalonUid={viewingSalonUid}
+        salonName={salon?.name}
+        salon={salon}
       />
-      <main className="min-h-screen bg-gray-50 font-sans p-0 relative z-0">
+      <main className={`min-h-screen bg-gray-50 font-sans p-0 relative z-0 transition-all duration-300 ${showPlanModal ? "filter blur-sm pointer-events-none select-none" : ""}`}>
         <div className="max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-4 lg:px-8">
           <div className="mb-4 sm:mb-6 lg:mb-8 text-center">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
@@ -192,6 +209,9 @@ export default function CalendarPage() {
         )}
         <Footer />
       </main>
+      {showPlanModal && (
+        <PlanUpgradeModal plan={salon?.plan} />
+      )}
     </>
   );
 
@@ -367,6 +387,56 @@ const EnhancedCalendarWidget = ({
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Wochenübersicht - moved above calendar header */}
+      <div className="bg-gradient-to-r from-slate-50 to-gray-50 p-4 sm:p-6 rounded-xl border border-slate-200">
+        <h4 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Wochenübersicht</h4>
+        <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-7 gap-4'}`}>
+          {weekDays.map(day => {
+            const dayBookings = bookings.filter(b => b.date === day.date);
+            return (
+              <div key={day.date} className={`text-center p-2 sm:p-3 rounded-lg shadow-sm border ${
+                day.isHoliday 
+                  ? 'bg-red-50 border-red-200' 
+                  : !day.isOpen 
+                    ? 'bg-gray-100 border-gray-200 opacity-60' 
+                    : 'bg-white border-gray-100'
+              }`}>
+                <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">{day.dayName}</div>
+                <div className={`text-xl sm:text-2xl font-bold mb-1 ${
+                  day.isHoliday ? 'text-black' : !day.isOpen ? 'text-gray-400' : 'text-gray-900'
+                }`}>
+                  {day.isHoliday ? '🏖️' : !day.isOpen ? '❌' : dayBookings.length}
+                </div>
+                <div className={`text-xs font-medium ${
+                  day.isHoliday
+                    ? 'text-black'
+                    : !day.isOpen
+                      ? 'text-black'
+                      : 'text-black'
+                }`}>
+                  {day.isHoliday 
+                    ? 'Feiertag' 
+                    : !day.isOpen 
+                      ? 'Geschlossen' 
+                      : dayBookings.length === 1 
+                        ? 'Termin' 
+                        : 'Termine'
+                  }
+                </div>
+                {day.workingHours && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {isMobile 
+                      ? `${day.workingHours.start.split(':')[0]}-${day.workingHours.end.split(':')[0]}` 
+                      : `${day.workingHours.start}-${day.workingHours.end}`
+                    }
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Calendar Header with Navigation */}
       <div className="flex items-center justify-between bg-slate-50 p-3 sm:p-5 rounded-xl border border-slate-200">
         <div className="flex items-center space-x-2 sm:space-x-4">
@@ -640,50 +710,6 @@ const EnhancedCalendarWidget = ({
           </>
         )}
       </div>
-
-      {/* Summary - Mobile: 2 columns, Desktop: 7 columns */}
-      <div className="bg-gradient-to-r from-slate-50 to-gray-50 p-4 sm:p-6 rounded-xl border border-slate-200">
-        <h4 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Wochenübersicht</h4>
-        <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-7 gap-4'}`}>
-          {weekDays.map(day => {
-            const dayBookings = bookings.filter(b => b.date === day.date);
-            return (
-              <div key={day.date} className={`text-center p-2 sm:p-3 rounded-lg shadow-sm border ${
-                day.isHoliday 
-                  ? 'bg-red-50 border-red-200' 
-                  : !day.isOpen 
-                    ? 'bg-gray-100 border-gray-200 opacity-60' 
-                    : 'bg-white border-gray-100'
-              }`}>
-                <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">{day.dayName}</div>
-                <div className={`text-xl sm:text-2xl font-bold mb-1 ${
-                  day.isHoliday ? 'text-red-600' : !day.isOpen ? 'text-gray-400' : 'text-gray-900'
-                }`}>
-                  {day.isHoliday ? '🏖️' : !day.isOpen ? '❌' : dayBookings.length}
-                </div>
-                <div className={`text-xs font-medium ${(!day.isHoliday && day.isOpen) ? 'text-black' : ''}`}>
-                  {day.isHoliday 
-                    ? 'Feiertag' 
-                    : !day.isOpen 
-                      ? 'Geschlossen' 
-                      : dayBookings.length === 1 
-                        ? 'Termin' 
-                        : 'Termine'
-                  }
-                </div>
-                {day.workingHours && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {isMobile 
-                      ? `${day.workingHours.start.split(':')[0]}-${day.workingHours.end.split(':')[0]}` 
-                      : `${day.workingHours.start}-${day.workingHours.end}`
-                    }
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 };
@@ -787,3 +813,38 @@ const HolidayModal = ({
     </div>
   );
 };
+
+// Modal overlay for plan upgrade (same style as analytics blur popup)
+const PlanUpgradeModal = ({ plan }: { plan?: string }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
+    <div className="absolute inset-0 backdrop-blur-sm transition-all duration-300" />
+    <div className="relative text-center p-6 bg-white rounded-lg shadow-lg max-w-md mx-4 border-2 border-[#5C6F68]">
+      <h2 className="text-xl font-semibold text-gray-900 mb-2">Kalender nur für Premium-Pläne</h2>
+      <p className="text-gray-600 mb-4">
+        Die Kalenderansicht ist nur für Founders, Grow, Unicorn und Custom Pläne verfügbar.<br />
+        Ihr aktueller Plan: <strong>{plan || "Startup"}</strong>
+      </p>
+      <p className="text-sm text-gray-500 mb-4">
+        Upgraden Sie Ihren Plan, um die erweiterte Kalenderansicht zu nutzen.
+      </p>
+      <a
+        href="/admin/plans"
+        className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2 px-4 rounded-md inline-block mr-2"
+      >
+        Plan upgraden
+      </a>
+      <a
+        href="/kontakt"
+        className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md inline-block mr-2"
+      >
+        Kontakt
+      </a>
+      <button
+        onClick={() => window.history.back()}
+        className="mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md"
+      >
+        Zurück
+      </button>
+    </div>
+  </div>
+)
