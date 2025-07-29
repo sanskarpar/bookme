@@ -157,7 +157,7 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
           color: "#fff",
           textAlign: "center",
           padding: "0.7rem 0",
-          fontWeight: 600,
+          fontWeight: 600, // keep fontWeight for bar, but not for text
           fontSize: "1.05rem",
           letterSpacing: 0.2,
           display: "flex",
@@ -193,10 +193,10 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
             style={{
               color: "#fff",
               textDecoration: "underline",
-              fontWeight: 700,
+              fontWeight: 400, // remove bold
             }}
           >
-            "Dein Google Maps Profil ist nicht optimiert und Deine Website ist veraltet, kontaktiere uns um keine Kunden zu verlieren!"
+            Dein Google Maps Profil ist nicht optimiert und Deine Website ist veraltet, kontaktiere uns um keine Kunden zu verlieren!
           </a>
         )}
       </div>
@@ -208,7 +208,7 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
           color: "#5C6F68",
           textAlign: "center",
           padding: "0.35rem 0",
-          fontWeight: 500,
+          fontWeight: 500, // keep for bar, but not for text
           fontSize: "0.98rem",
           letterSpacing: 0.1,
           borderBottom: "1px solid #e0a96d33",
@@ -220,9 +220,9 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
         }}
       >
         <span>
-          Aktueller Plan: <b>{currentPlan}</b>
+          Aktueller Plan: <span style={{ fontWeight: 400 }}>{currentPlan}</span>
         </span>
-        <span style={{ color: "#e0a96d", fontWeight: 600 }}>
+        <span style={{ color: "#e0a96d", fontWeight: 400 }}>
           (Alle neuen Kunden erhalten den Founders Plan für 2 Monate kostenlos!)
         </span>
         <a

@@ -282,226 +282,228 @@ function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 font-sans p-0">
+    <main className="min-h-screen bg-gray-50 font-sans p-0 flex flex-col">
       {/* Pass user to Navbar */}
       <Navbar user={user} />
-      <div className="max-w-6xl mx-auto py-4 sm:py-8 px-2 sm:px-6 lg:px-8">
-        <div className="mb-6 sm:mb-8 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 flex items-center">
-                <FiScissors className="mr-2 text-[#5C6F68]" /> Alle Salons
-              </h1>
-            </div>
-            <div className="flex items-center w-full md:w-auto">
-              <input
-                type="text"
-                placeholder="Suche nach Salonname oder Dienstleistung..."
-                value={filterText}
-                onChange={e => {
-                  setFilterText(e.target.value);
-                  if (filterService) {
-                    setFilterService("");
-                  }
-                }}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full md:w-auto focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
-                style={{ minWidth: 0 }}
-              />
-            </div>
-          </div>
-          {/* Mobile Filters & Sort Button */}
-          <div className="flex sm:hidden mt-2">
-            <button
-              className="flex items-center gap-2 px-4 py-2 bg-[#5C6F68] text-white rounded-md font-medium w-full justify-center"
-              onClick={() => setShowFilterModal(true)}
-            >
-              <FiFilter className="w-5 h-5" />
-              Filter & Sortieren
-            </button>
-          </div>
-          {/* Desktop Filters & Sort */}
-          <div className="hidden sm:flex flex-col sm:flex-row gap-2 md:gap-4 items-stretch sm:items-center">
-            <div className="flex flex-col sm:flex-row gap-2 flex-1 overflow-x-auto">
-              <select
-                value={filterService}
-                onChange={e => setFilterService(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full sm:min-w-[160px] focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
-              >
-                <option value="">Alle Dienstleistungsarten</option>
-                {allServiceTypes.map(serviceType => (
-                  <option key={serviceType} value={serviceType}>
-                    {serviceType}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="date"
-                value={filterDate}
-                onChange={e => setFilterDate(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full sm:min-w-[140px] focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full sm:min-w-[140px] focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
-              >
-                <option value="name" className="text-[#1F1F1F] bg-white">Sortieren nach Name</option>
-                <option value="price-low" className="text-[#1F1F1F] bg-white">Preis: aufsteigend</option>
-                <option value="price-high" className="text-[#1F1F1F] bg-white">Preis: absteigend</option>
-                <option value="rating" className="text-[#1F1F1F] bg-white">Sortieren nach Bewertung</option>
-              </select>
-              <select
-                value={filterRating}
-                onChange={e => setFilterRating(Number(e.target.value))}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full sm:min-w-[120px] focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
-              >
-                <option value={0}>Alle Bewertungen</option>
-                <option value={1}>1+ Sterne</option>
-                <option value={2}>2+ Sterne</option>
-                <option value={3}>3+ Sterne</option>
-                <option value={4}>4+ Sterne</option>
-                <option value={5}>5 Sterne</option>
-              </select>
-            </div>
-          </div>
-          {/* Mobile Filters Modal */}
-          {showFilterModal && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-white/60">
-              <div className="bg-white w-full sm:w-[400px] rounded-t-lg sm:rounded-lg shadow-lg p-6 relative animate-slide-up">
-              <button
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-                onClick={() => setShowFilterModal(false)}
-                aria-label="Schließen"
-              >
-                <FiX className="w-6 h-6" />
-              </button>
-                <h2 className="text-lg font-semibold mb-4 text-[#5C6F68] flex items-center">
-                  <FiFilter className="mr-2" /> Filter & Sortieren
-                </h2>
-                <div className="flex flex-col gap-4">
-                  <select
-                    value={filterService}
-                    onChange={e => setFilterService(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white"
-                  >
-                    <option value="">Alle Dienstleistungsarten</option>
-                    {allServiceTypes.map(serviceType => (
-                      <option key={serviceType} value={serviceType}>
-                        {serviceType}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="date"
-                    value={filterDate}
-                    onChange={e => setFilterDate(e.target.value)}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white"
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                  <select
-                    value={sortBy}
-                    onChange={e => setSortBy(e.target.value as any)}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white"
-                  >
-                    <option value="name" className="text-[#1F1F1F] bg-white">Sortieren nach Name</option>
-                    <option value="price-low" className="text-[#1F1F1F] bg-white">Preis: aufsteigend</option>
-                    <option value="price-high" className="text-[#1F1F1F] bg-white">Preis: absteigend</option>
-                    <option value="rating" className="text-[#1F1F1F] bg-white">Sortieren nach Bewertung</option>
-                  </select>
-                  <select
-                    value={filterRating}
-                    onChange={e => setFilterRating(Number(e.target.value))}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white"
-                  >
-                    <option value={0}>Alle Bewertungen</option>
-                    <option value={1}>1+ Sterne</option>
-                    <option value={2}>2+ Sterne</option>
-                    <option value={3}>3+ Sterne</option>
-                    <option value={4}>4+ Sterne</option>
-                    <option value={5}>5 Sterne</option>
-                  </select>
-                  <button
-                    className="mt-2 bg-[#5C6F68] text-white rounded-md px-4 py-2 font-medium"
-                    onClick={() => setShowFilterModal(false)}
-                  >
-                    Anwenden
-                  </button>
-                </div>
+      <div className="flex-1">
+        <div className="max-w-6xl mx-auto py-4 sm:py-8 px-2 sm:px-6 lg:px-8">
+          <div className="mb-6 sm:mb-8 flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 flex items-center">
+                  <FiScissors className="mr-2 text-[#5C6F68]" /> Alle Salons
+                </h1>
+              </div>
+              <div className="flex items-center w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Suche nach Salonname oder Dienstleistung..."
+                  value={filterText}
+                  onChange={e => {
+                    setFilterText(e.target.value);
+                    if (filterService) {
+                      setFilterService("");
+                    }
+                  }}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full md:w-auto focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
+                  style={{ minWidth: 0 }}
+                />
               </div>
             </div>
-          )}
-        </div>
-        <p className="text-gray-600 mb-6 sm:mb-8 text-center text-sm sm:text-base px-2">
-          Durchstöbern Sie alle Salons und finden Sie Ihren nächsten Termin.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {filteredSalons
-            .filter(salon => typeof salon.name === "string" && salon.name.length > 0)
-            .map(salon => {
-              const slug = slugify(salon.name);
-              return (
-                <div
-                  key={salon._id}
-                  className="bg-white rounded-lg shadow-sm border border-[#E4DED5] flex flex-col overflow-hidden hover:shadow-md transform hover:-translate-y-1 transition-all duration-200"
+            {/* Mobile Filters & Sort Button */}
+            <div className="flex sm:hidden mt-2">
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-[#5C6F68] text-white rounded-md font-medium w-full justify-center"
+                onClick={() => setShowFilterModal(true)}
+              >
+                <FiFilter className="w-5 h-5" />
+                Filter & Sortieren
+              </button>
+            </div>
+            {/* Desktop Filters & Sort */}
+            <div className="hidden sm:flex flex-col sm:flex-row gap-2 md:gap-4 items-stretch sm:items-center">
+              <div className="flex flex-col sm:flex-row gap-2 flex-1 overflow-x-auto">
+                <select
+                  value={filterService}
+                  onChange={e => setFilterService(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full sm:min-w-[160px] focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
                 >
-                  {salon.imageUrls && salon.imageUrls.length > 0 && (
-                    <img
-                      src={salon.imageUrls[0]}
-                      alt={salon.name}
-                      className="w-full h-40 sm:h-48 object-cover"
-                      style={{ background: COLORS.accent }}
-                    />
-                  )}
-                  <div className="p-4 sm:p-6 flex-1 flex flex-col">
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 flex items-start break-words">
-                      <FiScissors className="mr-2 text-[#5C6F68] flex-shrink-0 mt-1" /> 
-                      <span className="break-words">{salon.name}</span>
-                    </h2>
-                    <p className="text-[#5C6F68] font-medium mb-2 text-sm sm:text-base">
-                      {getPriceRange(salon.uid) ? (
-                        <>Preisbereich: {getPriceRange(salon.uid)}</>
-                      ) : (
-                        <>Keine Preisinformation</>
-                      )}
-                    </p>
-                    <div className="flex items-center mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <FiStar
-                          key={i}
-                          className={`w-4 h-4 sm:w-5 sm:h-5 ${i < Math.round(ratings[salon.uid] || 0) ? "text-[#9DBE8D] fill-current" : "text-gray-300"}`}
-                        />
+                  <option value="">Alle Dienstleistungsarten</option>
+                  {allServiceTypes.map(serviceType => (
+                    <option key={serviceType} value={serviceType}>
+                      {serviceType}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={e => setFilterDate(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full sm:min-w-[140px] focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as any)}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full sm:min-w-[140px] focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
+                >
+                  <option value="name" className="text-[#1F1F1F] bg-white">Sortieren nach Name</option>
+                  <option value="price-low" className="text-[#1F1F1F] bg-white">Preis: aufsteigend</option>
+                  <option value="price-high" className="text-[#1F1F1F] bg-white">Preis: absteigend</option>
+                  <option value="rating" className="text-[#1F1F1F] bg-white">Sortieren nach Bewertung</option>
+                </select>
+                <select
+                  value={filterRating}
+                  onChange={e => setFilterRating(Number(e.target.value))}
+                  className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white w-full sm:min-w-[120px] focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
+                >
+                  <option value={0}>Alle Bewertungen</option>
+                  <option value={1}>1+ Sterne</option>
+                  <option value={2}>2+ Sterne</option>
+                  <option value={3}>3+ Sterne</option>
+                  <option value={4}>4+ Sterne</option>
+                  <option value={5}>5 Sterne</option>
+                </select>
+              </div>
+            </div>
+            {/* Mobile Filters Modal */}
+            {showFilterModal && (
+              <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-white/60">
+                <div className="bg-white w-full sm:w-[400px] rounded-t-lg sm:rounded-lg shadow-lg p-6 relative animate-slide-up">
+                <button
+                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowFilterModal(false)}
+                  aria-label="Schließen"
+                >
+                  <FiX className="w-6 h-6" />
+                </button>
+                  <h2 className="text-lg font-semibold mb-4 text-[#5C6F68] flex items-center">
+                    <FiFilter className="mr-2" /> Filter & Sortieren
+                  </h2>
+                  <div className="flex flex-col gap-4">
+                    <select
+                      value={filterService}
+                      onChange={e => setFilterService(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white"
+                    >
+                      <option value="">Alle Dienstleistungsarten</option>
+                      {allServiceTypes.map(serviceType => (
+                        <option key={serviceType} value={serviceType}>
+                          {serviceType}
+                        </option>
                       ))}
-                      <span className="ml-2 text-[#1F1F1F] font-medium text-sm sm:text-base">
-                        {typeof ratings[salon.uid] === "number" ? ratings[salon.uid].toFixed(1) : "0.0"}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 mb-2 text-sm sm:text-base line-clamp-3 flex-grow">{salon.description}</p>
-                    <div className="mt-auto space-y-1">
-                      <div className="flex items-start text-gray-600 text-xs sm:text-sm">
-                        <FiMapPin className="mr-1 text-[#9DBE8D] flex-shrink-0 mt-0.5" />
-                        <span className="break-words">{salon.location}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600 text-xs sm:text-sm">
-                        <FiPhone className="mr-1 text-[#5C6F68] flex-shrink-0" />
-                        <span className="break-all">{salon.contact}</span>
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <button
-                        className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2.5 px-4 rounded-md w-full transition-colors duration-200 text-sm sm:text-base active:bg-[#3d4a44]"
-                        onClick={() => router.push(`/salon/${slug}`)}
-                      >
-                        Jetzt buchen
-                      </button>
-                    </div>
+                    </select>
+                    <input
+                      type="date"
+                      value={filterDate}
+                      onChange={e => setFilterDate(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                    <select
+                      value={sortBy}
+                      onChange={e => setSortBy(e.target.value as any)}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white"
+                    >
+                      <option value="name" className="text-[#1F1F1F] bg-white">Sortieren nach Name</option>
+                      <option value="price-low" className="text-[#1F1F1F] bg-white">Preis: aufsteigend</option>
+                      <option value="price-high" className="text-[#1F1F1F] bg-white">Preis: absteigend</option>
+                      <option value="rating" className="text-[#1F1F1F] bg-white">Sortieren nach Bewertung</option>
+                    </select>
+                    <select
+                      value={filterRating}
+                      onChange={e => setFilterRating(Number(e.target.value))}
+                      className="border border-gray-300 rounded-md px-3 py-2 text-sm text-[#1F1F1F] bg-white"
+                    >
+                      <option value={0}>Alle Bewertungen</option>
+                      <option value={1}>1+ Sterne</option>
+                      <option value={2}>2+ Sterne</option>
+                      <option value={3}>3+ Sterne</option>
+                      <option value={4}>4+ Sterne</option>
+                      <option value={5}>5 Sterne</option>
+                    </select>
+                    <button
+                      className="mt-2 bg-[#5C6F68] text-white rounded-md px-4 py-2 font-medium"
+                      onClick={() => setShowFilterModal(false)}
+                    >
+                      Anwenden
+                    </button>
                   </div>
                 </div>
-              );
-            })
-          }
+              </div>
+            )}
+          </div>
+          <p className="text-gray-600 mb-6 sm:mb-8 text-center text-sm sm:text-base px-2">
+            Durchstöbern Sie alle Salons und finden Sie Ihren nächsten Termin.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {filteredSalons
+              .filter(salon => typeof salon.name === "string" && salon.name.length > 0)
+              .map(salon => {
+                const slug = slugify(salon.name);
+                return (
+                  <div
+                    key={salon._id}
+                    className="bg-white rounded-lg shadow-sm border border-[#E4DED5] flex flex-col overflow-hidden hover:shadow-md transform hover:-translate-y-1 transition-all duration-200"
+                  >
+                    {salon.imageUrls && salon.imageUrls.length > 0 && (
+                      <img
+                        src={salon.imageUrls[0]}
+                        alt={salon.name}
+                        className="w-full h-40 sm:h-48 object-cover"
+                        style={{ background: COLORS.accent }}
+                      />
+                    )}
+                    <div className="p-4 sm:p-6 flex-1 flex flex-col">
+                      <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 flex items-start break-words">
+                        <FiScissors className="mr-2 text-[#5C6F68] flex-shrink-0 mt-1" /> 
+                        <span className="break-words">{salon.name}</span>
+                      </h2>
+                      <p className="text-[#5C6F68] font-medium mb-2 text-sm sm:text-base">
+                        {getPriceRange(salon.uid) ? (
+                          <>Preisbereich: {getPriceRange(salon.uid)}</>
+                        ) : (
+                          <>Keine Preisinformation</>
+                        )}
+                      </p>
+                      <div className="flex items-center mb-2">
+                        {[...Array(5)].map((_, i) => (
+                          <FiStar
+                            key={i}
+                            className={`w-4 h-4 sm:w-5 sm:h-5 ${i < Math.round(ratings[salon.uid] || 0) ? "text-[#9DBE8D] fill-current" : "text-gray-300"}`}
+                          />
+                        ))}
+                        <span className="ml-2 text-[#1F1F1F] font-medium text-sm sm:text-base">
+                          {typeof ratings[salon.uid] === "number" ? ratings[salon.uid].toFixed(1) : "0.0"}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 mb-2 text-sm sm:text-base line-clamp-3 flex-grow">{salon.description}</p>
+                      <div className="mt-auto space-y-1">
+                        <div className="flex items-start text-gray-600 text-xs sm:text-sm">
+                          <FiMapPin className="mr-1 text-[#9DBE8D] flex-shrink-0 mt-0.5" />
+                          <span className="break-words">{salon.location}</span>
+                        </div>
+                        <div className="flex items-center text-gray-600 text-xs sm:text-sm">
+                          <FiPhone className="mr-1 text-[#5C6F68] flex-shrink-0" />
+                          <span className="break-all">{salon.contact}</span>
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <button
+                          className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2.5 px-4 rounded-md w-full transition-colors duration-200 text-sm sm:text-base active:bg-[#3d4a44]"
+                          onClick={() => router.push(`/salon/${slug}`)}
+                        >
+                          Jetzt buchen
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            }
+          </div>
         </div>
       </div>
       {/* Footer outside main content for full width */}

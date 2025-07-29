@@ -329,25 +329,25 @@ export default function SalonDashboard() {
             id: 'bookings',
             title: 'Buchungen heute',
             value: todayBookings.length,
-            icon: <FiCalendar size={24} />
+            icon: <FiCalendar size={24} color="#222" />
           },
           {
             id: 'revenue',
             title: 'Tageseinnahmen',
             value: `€${todayRevenue}`,
-            icon: <FaEuroSign size={24} /> // use FaEuroSign instead of FiEuro
+            icon: <FaEuroSign size={24} color="#222" />
           },
           {
             id: 'popular',
             title: 'Beliebteste Dienstleistung',
             value: popularService,
-            icon: <FiTrendingUp size={24} />
+            icon: <FiTrendingUp size={24} color="#222" />
           },
           {
             id: 'rating',
             title: 'Durchschnittliche Bewertung',
             value: avgRating,
-            icon: <FiStar size={24} />
+            icon: <FiStar size={24} color="#222" />
           },
         ]);
 
@@ -480,115 +480,117 @@ export default function SalonDashboard() {
         salonName={isSystemAdmin ? salon?.name : undefined}
         salon={salon}
       />
-      <main className="min-h-screen bg-gray-50 font-sans p-0">
-        <div className="max-w-6xl mx-auto py-6 px-2 sm:px-4 lg:px-8">
-          {/* Header */}
-          <div className="mb-6 sm:mb-8 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-              Willkommen zurück, {salon?.name || 'Saloninhaber'}
-              {viewingSalonUid && isSystemAdmin && (
-                <span className="text-lg text-gray-600 block mt-1">(System-Ansicht)</span>
-              )}
-            </h1>
-            <p className="text-gray-600 text-sm sm:text-base">
-              Das passiert heute in Ihrem Salon.
-            </p>
-          </div>
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            {stats.map((stat) => (
-              <StatCard key={stat.id} stat={stat} />
-            ))}
-          </div>
-          {/* Today's Bookings */}
-          <section className="mb-6 sm:mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
-                <FiClock className="mr-2" /> Buchungen heute
-              </h2>
-              <span className="text-xs sm:text-sm text-gray-500">
-                {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </span>
+      <div className="flex flex-col min-h-screen bg-gray-50 font-sans p-0">
+        <main className="flex-1">
+          <div className="max-w-6xl mx-auto py-6 px-2 sm:px-4 lg:px-8">
+            {/* Header */}
+            <div className="mb-6 sm:mb-8 text-center">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                Willkommen zurück, {salon?.name || 'Saloninhaber'}
+                {viewingSalonUid && isSystemAdmin && (
+                  <span className="text-lg text-gray-600 block mt-1">(System-Ansicht)</span>
+                )}
+              </h1>
+              <p className="text-gray-600 text-sm sm:text-base">
+                Das passiert heute in Ihrem Salon.
+              </p>
             </div>
-            <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Uhrzeit / Dauer
-                      </th>
-                      <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dienstleistung</th>
-                      <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kunde</th>
-                      <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitarbeiter</th>
-                      <th className="px-2 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {todayBookings.length > 0 ? (
-                      todayBookings.map((booking) => (
-                        <tr key={booking.id} className={booking.status !== 'upcoming' ? 'opacity-50' : ''}>
-                          <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                            {/* Show time range and duration */}
-                            {booking.time} - {booking.endTime}
-                            <span className="ml-2 text-gray-400 text-xs">
-                              ({booking.duration} min)
-                            </span>
-                          </td>
-                          <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500">
-                            {booking.service}
-                          </td>
-                          <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500">
-                            {booking.customer}
-                          </td>
-                          <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500">
-                            {booking.employee || <span className="italic text-gray-400">-</span>}
-                          </td>
-                          <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
-                            {booking.status === 'upcoming' && (
-                              <div className="flex flex-col sm:flex-row gap-1 sm:gap-0 justify-end items-end">
-                                <button
-                                  onClick={() => handleBookingAction(booking.id, 'complete')}
-                                  className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-2 sm:px-3 py-1 rounded-md text-xs font-medium"
-                                >
-                                  Abschließen
-                                </button>
-                                <button
-                                  onClick={() => handleBookingAction(booking.id, 'no-show')}
-                                  className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-2 sm:px-3 py-1 rounded-md text-xs font-medium"
-                                >
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              {stats.map((stat) => (
+                <StatCard key={stat.id} stat={stat} />
+              ))}
+            </div>
+            {/* Today's Bookings */}
+            <section className="mb-6 sm:mb-8">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
+                  <FiClock className="mr-2" /> Buchungen heute
+                </h2>
+                <span className="text-xs sm:text-sm text-gray-500">
+                  {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </span>
+              </div>
+              <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Uhrzeit / Dauer
+                        </th>
+                        <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dienstleistung</th>
+                        <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kunde</th>
+                        <th className="px-2 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mitarbeiter</th>
+                        <th className="px-2 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {todayBookings.length > 0 ? (
+                        todayBookings.map((booking) => (
+                          <tr key={booking.id} className={booking.status !== 'upcoming' ? 'opacity-50' : ''}>
+                            <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                              {/* Show time range and duration */}
+                              {booking.time} - {booking.endTime}
+                              <span className="ml-2 text-gray-400 text-xs">
+                                ({booking.duration} min)
+                              </span>
+                            </td>
+                            <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                              {booking.service}
+                            </td>
+                            <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                              {booking.customer}
+                            </td>
+                            <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                              {booking.employee || <span className="italic text-gray-400">-</span>}
+                            </td>
+                            <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
+                              {booking.status === 'upcoming' && (
+                                <div className="flex flex-col sm:flex-row gap-1 sm:gap-0 justify-end items-end">
+                                  <button
+                                    onClick={() => handleBookingAction(booking.id, 'no-show')}
+                                    className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-2 sm:px-3 py-1 rounded-md text-xs font-medium"
+                                  >
+                                    Nicht erschienen
+                                  </button>
+                                  <button
+                                    onClick={() => handleBookingAction(booking.id, 'complete')}
+                                    className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-2 sm:px-3 py-1 rounded-md text-xs font-medium"
+                                  >
+                                    Abschließen
+                                  </button>
+                                </div>
+                              )}
+                              {booking.status === 'completed' && (
+                                <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-medium">
+                                  Abgeschlossen
+                                </span>
+                              )}
+                              {booking.status === 'no-show' && (
+                                <span className="text-red-600 bg-red-50 px-2 py-1 rounded-md text-xs font-medium">
                                   Nicht erschienen
-                                </button>
-                              </div>
-                            )}
-                            {booking.status === 'completed' && (
-                              <span className="text-green-600 bg-green-50 px-2 py-1 rounded-md text-xs font-medium">
-                                Abgeschlossen
-                              </span>
-                            )}
-                            {booking.status === 'no-show' && (
-                              <span className="text-red-600 bg-red-50 px-2 py-1 rounded-md text-xs font-medium">
-                                Nicht erschienen
-                              </span>
-                            )}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-2 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500">
+                            Keine Buchungen für heute geplant
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="px-2 sm:px-6 py-4 text-center text-xs sm:text-sm text-gray-500">
-                          Keine Buchungen für heute geplant
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          </section>
-        </div>
+            </section>
+          </div>
+        </main>
         <Footer />
-      </main>
+      </div>
     </>
   );
 }
@@ -596,14 +598,21 @@ export default function SalonDashboard() {
 // Component for stat cards
 const StatCard = ({ stat }: { stat: StatCard }) => {
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm mb-2 sm:mb-0">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs sm:text-sm font-medium text-gray-500">{stat.title}</p>
-          <p className="mt-1 text-xl sm:text-2xl font-semibold text-gray-900">{stat.value}</p>
-        </div>
-        <div className="p-2 sm:p-3 rounded-full bg-primary-50 text-primary-600">
-          {stat.icon}
+    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-2 sm:mb-0 border border-gray-100 flex items-center min-h-[90px]">
+      <div className="flex-1 flex flex-col justify-center">
+        <p className="text-xs sm:text-sm font-normal text-gray-500">{stat.title}</p>
+        <p className="mt-1 text-2xl sm:text-3xl font-semibold text-gray-900">{stat.value}</p>
+      </div>
+      <div className="flex-shrink-0 flex items-center justify-center ml-4">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-[#e4ded5] to-[#9dbe8d]/30 shadow-inner border border-gray-200">
+          <span className="text-primary-600 flex items-center justify-center" style={{ lineHeight: 0 }}>
+            {/* Ensure icon is always 28px */}
+            {typeof stat.icon === "function"
+              ? React.createElement(stat.icon, { size: 28, color: "#222" })
+              : React.isValidElement(stat.icon)
+                ? React.cloneElement(stat.icon as React.ReactElement<any>, { color: "#222", size: 28 })
+                : stat.icon}
+          </span>
         </div>
       </div>
     </div>

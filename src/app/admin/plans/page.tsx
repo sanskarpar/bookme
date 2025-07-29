@@ -17,54 +17,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-const plans = [
-	{
-		id: "startup",
-		name: "Startup Plan",
-		price: "25€ / Monat",
-		fee: "+ 2% pro Buchung",
-		features: ["Basis Buchungssystem", "E-Mail Support", "Keine Analytics", "Keine Kalenderansicht"],
-		highlight: false,
-	},
-	{
-		id: "grow",
-		name: "Grow Plan",
-		price: "50€ / Monat",
-		fee: "+ 1,5% pro Buchung",
-		features: ["Kalenderansicht", "E-Mail & Telefon Support", "Keine Analytics"],
-		highlight: false,
-	},
-	{
-		id: "unicorn",
-		name: "Unicorn Plan",
-		price: "199€ / Monat",
-		fee: "+ 0,5% pro Buchung (erste 500 Termine, danach 0%)",
-		features: [
-			"Detaillierte Analytics",
-			"Kalenderansicht",
-			"24/7 Priority Support Hotline ohne Wartezeit",
-		],
-		highlight: true,
-	},
-	{
-		id: "founders",
-		name: "Founders Plan",
-		price: "0€ / Monat",
-		fee: "Keine Gebühren",
-		features: [
-			"Alle Features inklusive",
-			"Analytics & Kalenderansicht",
-			"Keine Limitationen",
-			"Nur für Gründer (erste 2 Monate kostenlos)",
-		],
-		highlight: true,
-		founders: true,
-	},
-];
-
 export default function PlansPage() {
 	const [user, setUser] = useState<any>(null);
 	const [salon, setSalon] = useState<any>(null);
+	const [plans, setPlans] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
@@ -73,15 +29,27 @@ export default function PlansPage() {
 			if (firebaseUser?.email) {
 				try {
 					// Fetch salon info to get current plan
-					const res = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
-					if (res.ok) {
-						const data = await res.json();
-						setSalon(data.salon || data);
+					const salonRes = await fetch(`/api/salons?email=${encodeURIComponent(firebaseUser.email)}`);
+					if (salonRes.ok) {
+						const salonData = await salonRes.json();
+						setSalon(salonData.salon || salonData);
 					}
 				} catch (err) {
 					console.error("Error fetching salon data:", err);
 				}
 			}
+			
+			// Fetch plans from API
+			try {
+				const plansRes = await fetch('/api/plans');
+				if (plansRes.ok) {
+					const plansData = await plansRes.json();
+					setPlans(plansData.plans || []);
+				}
+			} catch (err) {
+				console.error("Error fetching plans:", err);
+			}
+			
 			setLoading(false);
 		});
 		return () => unsubscribe();
@@ -92,7 +60,8 @@ export default function PlansPage() {
 		
 		try {
 			// For now, just show a message. In the future, integrate with payment system
-			alert(`Plan-Upgrade zu ${planId} wird demnächst verfügbar sein. Kontaktieren Sie uns für sofortiges Upgrade.`);
+			const selectedPlan = plans.find(p => p.id === planId);
+			alert(`Plan-Upgrade zu ${selectedPlan?.name || planId} wird demnächst verfügbar sein. Kontaktieren Sie uns für sofortiges Upgrade.`);
 		} catch (error) {
 			console.error("Error upgrading plan:", error);
 		}
@@ -205,21 +174,24 @@ export default function PlansPage() {
 						gap: 24,
 						justifyContent: "center",
 						color: "#111",
-						alignItems: "stretch", // Ensures all cards have equal height
+						alignItems: "stretch",
 					}}
 				>
 					{plans.map((plan) => {
 						const isCurrentPlan = plan.id === currentPlan;
+						const isFoundersPlan = plan.id === 'founders';
+						const isHighlighted = plan.price === 0 || plan.price >= 99; // Highlight free or premium plans
+						
 						return (
 							<div
-								key={plan.name}
+								key={plan.id}
 								style={{
 									background: "#fff",
-									border: plan.highlight || isCurrentPlan
+									border: isHighlighted || isCurrentPlan
 										? "2px solid #e0a96d"
 										: "1px solid #eee",
 									borderRadius: 12,
-									boxShadow: plan.highlight || isCurrentPlan
+									boxShadow: isHighlighted || isCurrentPlan
 										? "0 4px 16px #e0a96d22"
 										: "0 2px 8px #0001",
 									minWidth: 260,
@@ -232,30 +204,10 @@ export default function PlansPage() {
 									display: "flex",
 									flexDirection: "column",
 									justifyContent: "flex-start",
-									height: 420, // Fixed height for all cards (adjust as needed)
+									height: 420,
 								}}
 							>
-								{plan.founders && (
-									<div
-										style={{
-											position: "absolute",
-											top: -18,
-											left: "50%",
-											transform: "translateX(-50%)",
-											background: "#5C6F68",
-											color: "#fff",
-											borderRadius: 8,
-											padding: "0.2rem 1.1rem",
-											fontWeight: 700,
-											fontSize: "0.98rem",
-											letterSpacing: 0.1,
-											boxShadow: "0 1px 4px #0002",
-											border: "1px solid #fff7",
-										}}
-									>
-										Nur für Gründer
-									</div>
-								)}
+								{/* Nur für Gründer removed */}
 								{/* Current plan indicator */}
 								{isCurrentPlan && (
 									<div
@@ -292,7 +244,7 @@ export default function PlansPage() {
 										marginBottom: 4,
 									}}
 								>
-									{plan.price}
+									€{plan.price}/Monat
 								</div>
 								<div
 									style={{
@@ -301,7 +253,7 @@ export default function PlansPage() {
 										marginBottom: 12,
 									}}
 								>
-									{plan.fee}
+									{plan.description}
 								</div>
 								<ul
 									style={{
@@ -310,15 +262,15 @@ export default function PlansPage() {
 										color: "#111",
 									}}
 								>
-									{plan.features.map((f) => (
-										<li key={f} style={{ marginBottom: 6 }}>
-											{f}
+									{plan.features?.map((feature: string, idx: number) => (
+										<li key={idx} style={{ marginBottom: 6 }}>
+											{feature}
 										</li>
 									))}
 								</ul>
 								{/* Spacer to push button to bottom */}
 								<div style={{ flex: 1 }} />
-								{!plan.founders && !isCurrentPlan && (
+								{!isFoundersPlan && !isCurrentPlan && (
 									<button
 										onClick={() => handlePlanSelect(plan.id)}
 										style={{
@@ -345,7 +297,7 @@ export default function PlansPage() {
 											fontWeight: 600,
 											fontSize: "1rem",
 											marginTop: 8,
-											minHeight: 38, // Reserve space for alignment
+											minHeight: 38,
 											display: "flex",
 											alignItems: "center",
 											justifyContent: "center",
@@ -354,14 +306,14 @@ export default function PlansPage() {
 										✓ Ihr aktueller Plan
 									</div>
 								)}
-								{plan.founders && !isCurrentPlan && (
+								{isFoundersPlan && !isCurrentPlan && (
 									<div
 										style={{
 											color: "#111",
 											fontWeight: 500,
 											fontSize: "0.98rem",
 											marginTop: 8,
-											minHeight: 38, // Reserve space for alignment
+											minHeight: 38,
 											display: "flex",
 											alignItems: "flex-end",
 										}}
@@ -389,7 +341,7 @@ export default function PlansPage() {
 							alignItems: "center",
 							justifyContent: "flex-start",
 							color: "#111",
-							height: 420, // Match height with other cards
+							height: 420,
 						}}
 					>
 						<h2
