@@ -126,7 +126,7 @@ export default function PlansPage() {
 							borderRadius: 10,
 							padding: "1.2rem 1.5rem",
 							marginBottom: 24,
-							fontWeight: 600,
+							fontWeight: 400, // changed from 600 to normal
 							fontSize: "1.15rem",
 							boxShadow: "0 2px 8px #0001",
 							textAlign: "center",
@@ -146,7 +146,7 @@ export default function PlansPage() {
 						borderRadius: 10,
 						padding: "1.2rem 1.5rem",
 						marginBottom: 32,
-						fontWeight: 600,
+						fontWeight: 400, // changed from 600 to normal
 						fontSize: "1.15rem",
 						boxShadow: "0 2px 8px #0001",
 						textAlign: "center",
