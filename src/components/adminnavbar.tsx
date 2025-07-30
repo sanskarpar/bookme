@@ -153,8 +153,8 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
       <div
         style={{
           width: "100%",
-          background: "#e0a96d",
-          color: "#fff",
+          background: "#f7f3e9", // swapped from "#e0a96d"
+          color: "#5C6F68",      // swapped from "#fff"
           textAlign: "center",
           padding: "0.7rem 0",
           fontWeight: 600, // keep fontWeight for bar, but not for text
@@ -191,12 +191,12 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              color: "#fff",
+              color: "#5C6F68", // swapped from "#fff"
               textDecoration: "underline",
               fontWeight: 400, // remove bold
             }}
           >
-            Dein Google Maps Profil ist nicht optimiert und Deine Website ist veraltet, kontaktiere uns um keine Kunden zu verlieren!
+            Dein Google Profil ist veraltet, kontaktiere uns jetzt um deine Online-Präsenz zu verbessern.
           </a>
         )}
       </div>
@@ -204,8 +204,8 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
       <div
         style={{
           width: "100%",
-          background: "#f7f3e9",
-          color: "#5C6F68",
+          background: "#e0a96d", // swapped from "#f7f3e9"
+          color: "#fff",         // swapped from "#5C6F68"
           textAlign: "center",
           padding: "0.35rem 0",
           fontWeight: 500, // keep for bar, but not for text
@@ -222,15 +222,15 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
         <span>
           Aktueller Plan: <span style={{ fontWeight: 400 }}>{currentPlan}</span>
         </span>
-        <span style={{ color: "#e0a96d", fontWeight: 400 }}>
+        <span style={{ color: "#fff", fontWeight: 400 }}>
           (Alle neuen Kunden erhalten den Founders Plan für 2 Monate kostenlos!)
         </span>
         <a
           href="/admin/plans"
           style={{
             marginLeft: 16,
-            background: "#e0a96d",
-            color: "#fff",
+            background: "#fff",
+            color: "#e0a96d",
             borderRadius: 6,
             padding: "0.18rem 0.8rem",
             fontWeight: 600,
