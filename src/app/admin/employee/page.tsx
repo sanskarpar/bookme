@@ -627,18 +627,23 @@ export default function EmployeePage() {
                           const ranges: { start: string, end: string }[] = [];
                           let rangeStart = sorted[0];
                           let prev = sorted[0];
+                          
                           for (let i = 1; i < sorted.length; i++) {
                             const curr = sorted[i];
-                            const prevDate = new Date(prev);
-                            prevDate.setDate(prevDate.getDate() + 1);
-                            const expected = prevDate.toISOString().slice(0, 10);
-                            if (curr !== expected) {
+                            const prevDate = new Date(prev + 'T00:00:00');
+                            const currDate = new Date(curr + 'T00:00:00');
+                            const nextDay = new Date(prevDate);
+                            nextDay.setDate(nextDay.getDate() + 1);
+                            
+                            // Check if current date is exactly one day after previous date
+                            if (currDate.getTime() !== nextDay.getTime()) {
                               ranges.push({ start: rangeStart, end: prev });
                               rangeStart = curr;
                             }
                             prev = curr;
                           }
                           ranges.push({ start: rangeStart, end: prev });
+                          
                           return ranges.map(({ start, end }) => (
                             <span key={start + "-" + end} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full text-black font-medium shadow-sm">
                               <span>
@@ -651,8 +656,8 @@ export default function EmployeePage() {
                                 type="button"
                                 onClick={() => {
                                   const datesToRemove: string[] = [];
-                                  let d = new Date(start);
-                                  const endDate = new Date(end);
+                                  let d = new Date(start + 'T00:00:00');
+                                  const endDate = new Date(end + 'T00:00:00');
                                   while (d <= endDate) {
                                     datesToRemove.push(d.toISOString().slice(0, 10));
                                     d.setDate(d.getDate() + 1);
