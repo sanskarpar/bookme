@@ -957,7 +957,8 @@ export default function BookingSummaryPage() {
               </div>
             </div>
 
-            <div className="flex justify-between mt-8">
+            {/* Buttons: make mobile friendly */}
+            <div className="flex flex-col sm:flex-row justify-between mt-8 gap-3 sm:gap-0">
               <button
                 className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors"
                 style={{ borderRadius: '0.5rem' }}

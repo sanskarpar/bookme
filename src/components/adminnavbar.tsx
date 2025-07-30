@@ -31,6 +31,7 @@ const NAV_LINKS = [
   { name: "Dienstleistungen", href: "/admin/services" },
   { name: "Bewertungen", href: "/admin/reviews" },
   { name: "Analysen", href: "/admin/analytics" },
+  { name: "Salonprofil", href: "/admin/salonprofile" }, // <-- Added here
   // { name: "Einstellungen", href: "/admin/settings" }, // Remove from main nav
 ];
 
