@@ -130,13 +130,15 @@ export default function SettingsPage() {
     return (
       <>
         <Navbar user={user} />
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-black text-lg">Lade Einstellungen...</p>
-          </div>
-        </main>
-        <Footer />
+        <div className="min-h-screen flex flex-col">
+          <main className="flex-1 bg-gray-50 flex items-center justify-center font-sans">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mx-auto mb-4"></div>
+              <p className="text-black text-lg">Lade Einstellungen...</p>
+            </div>
+          </main>
+          <Footer />
+        </div>
       </>
     );
   }
@@ -145,13 +147,15 @@ export default function SettingsPage() {
     return (
       <>
         <Navbar user={user} viewingSalonUid={viewingSalonUid} />
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
-          <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
-            <h2 className="text-xl font-semibold text-black mb-2">Bitte einloggen</h2>
-            <p className="text-black mb-4">Melden Sie sich an, um die Einstellungen zu sehen.</p>
-          </div>
-        </main>
-        <Footer />
+        <div className="min-h-screen flex flex-col">
+          <main className="flex-1 bg-gray-50 flex items-center justify-center font-sans">
+            <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
+              <h2 className="text-xl font-semibold text-black mb-2">Bitte einloggen</h2>
+              <p className="text-black mb-4">Melden Sie sich an, um die Einstellungen zu sehen.</p>
+            </div>
+          </main>
+          <Footer />
+        </div>
       </>
     );
   }
@@ -164,105 +168,107 @@ export default function SettingsPage() {
         viewingSalonUid={viewingSalonUid}
         salonName={isSystemAdmin ? salon?.uid : undefined}
       />
-      <main className="min-h-screen bg-gray-50 font-sans p-0">
-        <div className="max-w-4xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
-          {/* Header */}
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2">
-              Einstellungen
-              {viewingSalonUid && isSystemAdmin && (
-                <span className="text-lg text-gray-600 block mt-1">(System-Ansicht)</span>
-              )}
-            </h1>
-            <p className="text-black text-base sm:text-lg">
-              Verwalten Sie Ihre Buchungs- und Datenschutzeinstellungen
-            </p>
-          </div>
-
-          <form onSubmit={handleUpdate} className="space-y-8">
-            {/* Booking History Tracking Toggle */}
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-base sm:text-lg font-semibold text-black mb-4 flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-primary-600 text-white font-bold">B</span>
-                Buchungshistorie-Einstellungen
-              </h3>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!disableBookingHistory}
-                    onChange={e => setDisableBookingHistory(!e.target.checked)}
-                    className="accent-primary-600 w-5 h-5"
-                  />
-                  <span className="text-black font-medium">
-                    Buchungshistorie anzeigen/tracken
-                  </span>
-                </label>
-                <span className="text-xs text-gray-500">
-                  Wenn deaktiviert, können Sie Ihre Buchungshistorie nicht einsehen.
-                </span>
-              </div>
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-1 bg-gray-50 font-sans p-0">
+          <div className="max-w-4xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
+            {/* Header */}
+            <div className="mb-8 text-center">
+              <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2">
+                Einstellungen
+                {viewingSalonUid && isSystemAdmin && (
+                  <span className="text-lg text-gray-600 block mt-1">(System-Ansicht)</span>
+                )}
+              </h1>
+              <p className="text-black text-base sm:text-lg">
+                Verwalten Sie Ihre Buchungs- und Datenschutzeinstellungen
+              </p>
             </div>
 
-            {/* Customer Address Storage Toggle */}
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-base sm:text-lg font-semibold text-black mb-4 flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-primary-600 text-white font-bold">A</span>
-                Kundenadress-Einstellungen
-              </h3>
-              <div className="space-y-4">
+            <form onSubmit={handleUpdate} className="space-y-8">
+              {/* Booking History Tracking Toggle */}
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-base sm:text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-primary-600 text-white font-bold">B</span>
+                  Buchungshistorie-Einstellungen
+                </h3>
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={storeCustomerAddress}
-                      onChange={e => setStoreCustomerAddress(e.target.checked)}
+                      checked={!disableBookingHistory}
+                      onChange={e => setDisableBookingHistory(!e.target.checked)}
                       className="accent-primary-600 w-5 h-5"
                     />
                     <span className="text-black font-medium">
-                      Kundenadresse beim Buchen erfassen
+                      Buchungshistorie anzeigen/tracken
                     </span>
                   </label>
-                </div>
-                <div className="text-xs text-gray-600">
-                  Wenn aktiviert, können Kunden ihre Adresse (Straße, Hausnummer, PLZ, Land) beim Buchungsprozess eingeben. 
-                  Diese Informationen werden gespeichert und sind in Ihrer Buchungsübersicht verfügbar.
+                  <span className="text-xs text-gray-500">
+                    Wenn deaktiviert, können Sie Ihre Buchungshistorie nicht einsehen.
+                  </span>
                 </div>
               </div>
-            </div>
 
-            {/* Save Button */}
-            <div className="flex justify-end pt-2">
-              <button
-                type="submit"
-                className="bg-green-400 hover:bg-green-500 text-white font-semibold px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow transition min-w-[120px] sm:min-w-[140px]"
-                style={{ color: "#000" }}
+              {/* Customer Address Storage Toggle */}
+              <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-base sm:text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-primary-600 text-white font-bold">A</span>
+                  Kundenadress-Einstellungen
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={storeCustomerAddress}
+                        onChange={e => setStoreCustomerAddress(e.target.checked)}
+                        className="accent-primary-600 w-5 h-5"
+                      />
+                      <span className="text-black font-medium">
+                        Kundenadresse beim Buchen erfassen
+                      </span>
+                    </label>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Wenn aktiviert, können Kunden ihre Adresse (Straße, Hausnummer, PLZ, Land) beim Buchungsprozess eingeben. 
+                    Diese Informationen werden gespeichert und sind in Ihrer Buchungsübersicht verfügbar.
+                  </div>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  className="bg-green-400 hover:bg-green-500 text-white font-semibold px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow transition min-w-[120px] sm:min-w-[140px]"
+                  style={{ color: "#000" }}
+                >
+                  Speichern
+                </button>
+              </div>
+            </form>
+
+            {/* Status Message */}
+            {status && (
+              <div
+                className={`mt-8 flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base ${
+                  status.startsWith("Fehler")
+                    ? "bg-red-50 text-black border border-red-200"
+                    : "bg-green-50 text-black border border-green-200"
+                }`}
               >
-                Speichern
-              </button>
-            </div>
-          </form>
-
-          {/* Status Message */}
-          {status && (
-            <div
-              className={`mt-8 flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base ${
-                status.startsWith("Fehler")
-                  ? "bg-red-50 text-black border border-red-200"
-                  : "bg-green-50 text-black border border-green-200"
-              }`}
-            >
-              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full font-bold ${
-                status.startsWith("Fehler") ? "bg-red-600 text-white" : "bg-green-600 text-white"
-              }`}>
-                {status.startsWith("Fehler") ? "!" : "✓"}
-              </span>
-              {status}
-            </div>
-          )}
-        </div>
+                <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full font-bold ${
+                  status.startsWith("Fehler") ? "bg-red-600 text-white" : "bg-green-600 text-white"
+                }`}>
+                  {status.startsWith("Fehler") ? "!" : "✓"}
+                </span>
+                {status}
+              </div>
+            )}
+          </div>
+        </main>
         <Footer />
-      </main>
+      </div>
     </>
   );
 }
