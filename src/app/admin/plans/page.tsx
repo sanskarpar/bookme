@@ -133,7 +133,7 @@ export default function PlansPage() {
 						}}
 					>
 						<span>
-							Ihr aktueller Plan: <b>{plans.find(p => p.id === currentPlan)?.name || "Founders Plan"}</b>
+							Ihr aktueller Plan: {plans.find(p => p.id === currentPlan)?.name || "Founders Plan"}
 						</span>
 					</div>
 				)}
@@ -153,8 +153,8 @@ export default function PlansPage() {
 					}}
 				>
 					<span>
-						<b>Gründeraktion:</b> Alle Kunden, die sich bis zum 1. Juli 2025
-						registrieren, erhalten den <b>Founders Plan</b> für 2 Monate{" "}
+						Gründeraktion: Alle Kunden, die sich bis zum 1. Juli 2025
+						registrieren, erhalten den Founders Plan für 2 Monate{" "}
 						<u>komplett kostenlos</u> und ohne jegliche Einschränkungen!
 					</span>
 				</div>
