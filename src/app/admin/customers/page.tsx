@@ -423,7 +423,7 @@ export default function CustomersPage() {
         />
       )}
       <main className="min-h-screen bg-gray-50 font-sans p-0 transition-all duration-300">
-        <div className="max-w-7xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
+        <div className="max-w-7xl mx-auto pt-8 pb-0 px-2 sm:px-4 lg:px-8">
           {/* Header */}
           <div className="mb-8 text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2">

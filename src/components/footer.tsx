@@ -12,7 +12,7 @@ export default function Footer() {
         background: COLORS.primary,
         color: COLORS.accent,
         padding: "3rem 1rem 2rem 1rem",
-        marginTop: "3rem",
+        marginTop: "0rem",
         textAlign: "center",
       }}
     >
