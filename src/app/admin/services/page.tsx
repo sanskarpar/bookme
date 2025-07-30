@@ -463,37 +463,40 @@ export default function ServicesPage() {
         user={user ? { email: user.email ?? null } : undefined} 
         viewingSalonUid={viewingSalonUid}
         salonName={isSystemAdmin ? salon?.name : undefined}
-        salon={salon} // <-- Pass salon object here
+        salon={salon}
       />
-      <main className="min-h-screen bg-gray-50 font-inter p-0">
-        <div className="max-w-6xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
+      {/* Blur overlay for modals if needed */}
+      <main className="min-h-screen bg-gray-50 font-sans p-0 transition-all duration-300">
+        <div className="max-w-7xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
           {/* Header */}
-          <div className="mb-8 text-center px-2 sm:px-0">
-            <h1 className="text-3xl font-bold text-black mb-2 font-inter">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2 font-inter">
               Dienstleistungen verwalten
               {viewingSalonUid && isSystemAdmin && (
                 <span className="text-lg text-gray-600 block mt-1">(System-Ansicht für {salon?.name})</span>
               )}
             </h1>
-            <p className="text-black font-inter">
+            <p className="text-black text-base sm:text-lg font-inter">
               Fügen Sie Dienstleistungen hinzu, bearbeiten oder entfernen Sie sie aus Ihrem Salonangebot.
             </p>
           </div>
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <ServiceStatCard count={services.length} />
           </div>
           {/* Add/Edit Service Form (Desktop only) */}
           {!isMobile && showForm && user && (
-            <ServiceForm
-              initial={editService}
-              onSave={handleSave}
-              onCancel={() => {
-                setShowForm(false);
-                setEditService(null);
-              }}
-              loading={loading}
-            />
+            <div className="mb-6">
+              <ServiceForm
+                initial={editService}
+                onSave={handleSave}
+                onCancel={() => {
+                  setShowForm(false);
+                  setEditService(null);
+                }}
+                loading={loading}
+              />
+            </div>
           )}
           {/* Employee Service Assignment */}
           {employees.length > 0 && (
@@ -564,173 +567,179 @@ export default function ServicesPage() {
           )}
           {/* Services List */}
           <section className="mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-0">
-              <div className="flex w-full items-center justify-between">
-                <h2 className="text-xl font-semibold text-black flex items-center font-inter">
-                  <FiScissors className="mr-2" /> Ihre Dienstleistungen
-                </h2>
-                {/* On mobile, button on right side of heading */}
-                <div className="flex-shrink-0 ml-2 sm:ml-0">
-                  <button
-                    className="flex items-center justify-center rounded-full bg-black hover:bg-gray-900 transition-colors w-10 h-10 shadow-md disabled:opacity-50"
-                    style={{ fontFamily: "Inter, sans-serif" }}
-                    onClick={() => {
-                      if (!user?.uid) {
-                        alert("Benutzer-ID fehlt. Bitte erneut einloggen.");
-                        return;
-                      }
-                      setShowForm(true);
-                      setEditService(null);
-                      // Autoscroll to add service form on mobile
-                      setTimeout(() => {
-                        if (isMobile && addServiceRef.current) {
-                          addServiceRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2 sm:gap-0">
+                <div className="flex w-full items-center justify-between">
+                  <h2 className="text-xl font-semibold text-black flex items-center font-inter">
+                    <FiScissors className="mr-2" /> Ihre Dienstleistungen
+                  </h2>
+                  {/* On mobile, button on right side of heading */}
+                  <div className="flex-shrink-0 ml-2 sm:ml-0">
+                    <button
+                      className="flex items-center justify-center rounded-full bg-black hover:bg-gray-900 transition-colors w-10 h-10 shadow-md disabled:opacity-50"
+                      style={{ fontFamily: "Inter, sans-serif" }}
+                      onClick={() => {
+                        if (!user?.uid) {
+                          alert("Benutzer-ID fehlt. Bitte erneut einloggen.");
+                          return;
                         }
-                      }, 100);
-                    }}
-                    disabled={!user?.uid}
-                    aria-label="Neue Dienstleistung hinzufügen"
-                    title="Neue Dienstleistung hinzufügen"
-                  >
-                    <FiPlus size={22} color="white" />
-                  </button>
+                        setShowForm(true);
+                        setEditService(null);
+                        setTimeout(() => {
+                          if (isMobile && addServiceRef.current) {
+                            addServiceRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+                          }
+                        }, 100);
+                      }}
+                      disabled={!user?.uid}
+                      aria-label="Neue Dienstleistung hinzufügen"
+                      title="Neue Dienstleistung hinzufügen"
+                    >
+                      <FiPlus size={22} color="white" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-            {/* Service Type Dropdown */}
-            <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2">
-              <label className="text-black font-inter font-medium">Nach Art filtern:</label>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="select select-bordered font-inter text-black border-gray-200 border-2 rounded-lg bg-gray-50 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200 py-2 text-base px-4 w-full sm:w-48"
-              >
-                {serviceTypes.map((type) => (
-                  <option key={type} value={type}>{type === "All" ? "Alle" : type}</option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              {filteredServices.length === 0 && (
-                <div className="col-span-full text-center text-black py-8 bg-white rounded-lg shadow-sm font-inter">
-                  Keine Dienstleistungen gefunden. Klicken Sie auf <span className="inline-flex items-center gap-1 font-semibold"><FiPlus /> Hinzufügen</span>, um eine zu erstellen.
-                </div>
-              )}
-              {/* Group services by uid and show price range for each group */}
+              {/* Service Type Dropdown */}
+              <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                <label className="text-black font-inter font-medium">Nach Art filtern:</label>
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="select select-bordered font-inter text-black border-gray-200 border-2 rounded-lg bg-gray-50 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-200 py-2 text-base px-4 w-full sm:w-48"
+                >
+                  {serviceTypes.map((type) => (
+                    <option key={type} value={type}>{type === "All" ? "Alle" : type}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Price Range */}
               {user?.uid && (
-                <div className="col-span-full">
+                <div className="mb-4">
                   <div className="font-bold text-black mb-2">Ihr Dienstleistungspreisbereich:</div>
-                  <div className="text-black font-inter mb-4">
+                  <div className="text-black font-inter">
                     {getPriceRangeForUid(services, user.uid) || "Keine Preisinformation"}
                   </div>
                 </div>
               )}
-              {filteredServices.map((s) => (
-                <React.Fragment key={s._id}>
-                  <div
-                    className="bg-white rounded-lg shadow-sm flex flex-col sm:flex-row items-center p-4 font-inter text-black"
-                  >
-                    {s.imageUrl && (
-                      <img
-                        src={s.imageUrl}
-                        alt={s.name}
-                        className="h-16 w-16 object-cover rounded mr-0 sm:mr-4 mb-2 sm:mb-0 border"
-                      />
-                    )}
-                    <div className="flex-1 text-black w-full">
-                      <div className="font-bold text-lg text-black font-inter">{s.name}</div>
-                      <div className="text-sm text-black font-inter">{s.description}</div>
-                      <div className="flex flex-wrap gap-2 mt-1 text-sm font-inter text-black">
-                        {s.durationPrices && s.durationPrices.length > 0 ? (
-                          <span className="text-black">
-                            {s.durationPrices.map((dp: any, i: number) => (
-                              <span key={i} className="mr-3">
-                                {dp.duration}min: €{dp.price}
-                              </span>
-                            ))}
-                          </span>
+              {/* Services List */}
+              <div className="grid grid-cols-1 gap-6">
+                {filteredServices.length === 0 && (
+                  <div className="col-span-full text-center text-black py-8 bg-white rounded-lg shadow-sm font-inter">
+                    Keine Dienstleistungen gefunden. Klicken Sie auf <span className="inline-flex items-center gap-1 font-semibold"><FiPlus /> Hinzufügen</span>, um eine zu erstellen.
+                  </div>
+                )}
+                {filteredServices.map((s) => (
+                  <React.Fragment key={s._id}>
+                    <div
+                      className="bg-white rounded-lg shadow-sm flex flex-col sm:flex-row items-center p-4 font-inter text-black border border-gray-200"
+                    >
+                      {s.imageUrl && (
+                        <img
+                          src={s.imageUrl}
+                          alt={s.name}
+                          className="h-16 w-16 object-cover rounded mr-0 sm:mr-4 mb-2 sm:mb-0 border"
+                        />
+                      )}
+                      <div className="flex-1 text-black w-full">
+                        <div className="text-base sm:text-lg font-medium sm:font-bold text-black font-inter mb-1">
+                          {s.name}
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-inter mb-1">
+                          {s.description}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-1 text-xs sm:text-sm font-inter text-black">
+                          {s.durationPrices && s.durationPrices.length > 0 ? (
+                            <span className="text-black font-semibold">
+                              {s.durationPrices.map((dp: any, i: number) => (
+                                <span key={i} className="inline-block mr-3 px-2 py-1 bg-gray-100 rounded font-mono text-xs sm:text-sm font-semibold text-black border border-gray-200">
+                                  {dp.duration}min: <span className="text-green-700 font-bold">€{dp.price}</span>
+                                </span>
+                              ))}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 font-medium">Keine Preise verfügbar</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-row sm:flex-col gap-2 ml-0 sm:ml-4 mt-2 sm:mt-0">
+                        {deleteId === s._id ? (
+                          <div className="flex flex-col gap-2 items-end bg-gray-50 border border-gray-200 rounded-lg p-3 shadow-sm">
+                            <div className="mb-1 text-black font-inter text-xs text-right">
+                              <span className="font-semibold text-red-600">Dienstleistung löschen?</span>
+                              <br />
+                              <span className="text-gray-500">Diese Aktion kann nicht rückgängig gemacht werden.</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white font-inter text-xs font-medium shadow transition-colors"
+                                onClick={() => handleDelete(s._id)}
+                                disabled={loading}
+                              >
+                                Ja, löschen
+                              </button>
+                              <button
+                                className="px-3 py-1 rounded-md bg-white border border-gray-300 hover:bg-gray-100 text-black font-inter text-xs font-medium shadow transition-colors"
+                                onClick={() => setDeleteId(null)}
+                                disabled={loading}
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
+                          </div>
                         ) : (
-                          <span className="text-gray-500">Keine Preise verfügbar</span>
+                          <>
+                            <button
+                              className="btn btn-xs btn-outline flex items-center gap-1 font-inter text-black"
+                              onClick={() => {
+                                setEditService(s);
+                                setShowForm(true);
+                              }}
+                            >
+                              <FiEdit2 /> <span className="text-black">Bearbeiten</span>
+                            </button>
+                            <button
+                              className="btn btn-xs btn-error flex items-center gap-1 font-inter text-black"
+                              onClick={() => setDeleteId(s._id)}
+                            >
+                              <FiTrash2 /> <span className="text-black">Löschen</span>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-row sm:flex-col gap-2 ml-0 sm:ml-4 mt-2 sm:mt-0">
-                      {deleteId === s._id ? (
-                        <div className="flex flex-col gap-2 items-end bg-gray-50 border border-gray-200 rounded-lg p-3 shadow-sm">
-                          <div className="mb-1 text-black font-inter text-xs text-right">
-                            <span className="font-semibold text-red-600">Dienstleistung löschen?</span>
-                            <br />
-                            <span className="text-gray-500">Diese Aktion kann nicht rückgängig gemacht werden.</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              className="px-3 py-1 rounded-md bg-red-600 hover:bg-red-700 text-white font-inter text-xs font-medium shadow transition-colors"
-                              onClick={() => handleDelete(s._id)}
-                              disabled={loading}
-                            >
-                              Ja, löschen
-                            </button>
-                            <button
-                              className="px-3 py-1 rounded-md bg-white border border-gray-300 hover:bg-gray-100 text-black font-inter text-xs font-medium shadow transition-colors"
-                              onClick={() => setDeleteId(null)}
-                              disabled={loading}
-                            >
-                              Abbrechen
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            className="btn btn-xs btn-outline flex items-center gap-1 font-inter text-black"
-                            onClick={() => {
-                              setEditService(s);
-                              setShowForm(true);
-                            }}
-                          >
-                            <FiEdit2 /> <span className="text-black">Bearbeiten</span>
-                          </button>
-                          <button
-                            className="btn btn-xs btn-error flex items-center gap-1 font-inter text-black"
-                            onClick={() => setDeleteId(s._id)}
-                          >
-                            <FiTrash2 /> <span className="text-black">Löschen</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  {/* Edit Service Form below the service on mobile */}
-                  {isMobile && showForm && editService?._id === s._id && user && (
-                    <div className="mt-2 mb-4">
-                      <ServiceForm
-                        initial={editService}
-                        onSave={handleSave}
-                        onCancel={() => {
-                          setShowForm(false);
-                          setEditService(null);
-                        }}
-                        loading={loading}
-                      />
-                    </div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            {/* On mobile, show add form at bottom if not editing */}
-            {isMobile && showForm && !editService && user && (
-              <div className="mt-4" ref={addServiceRef}>
-                <ServiceForm
-                  initial={null}
-                  onSave={handleSave}
-                  onCancel={() => {
-                    setShowForm(false);
-                    setEditService(null);
-                  }}
-                  loading={loading}
-                />
+                    {/* Edit Service Form below the service on both mobile and desktop */}
+                    {showForm && editService?._id === s._id && user && (
+                      <div className="mt-2 mb-4">
+                        <ServiceForm
+                          initial={editService}
+                          onSave={handleSave}
+                          onCancel={() => {
+                            setShowForm(false);
+                            setEditService(null);
+                          }}
+                          loading={loading}
+                        />
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
               </div>
-            )}
+              {/* On mobile, show add form at bottom if not editing */}
+              {isMobile && showForm && !editService && user && (
+                <div className="mt-4" ref={addServiceRef}>
+                  <ServiceForm
+                    initial={null}
+                    onSave={handleSave}
+                    onCancel={() => {
+                      setShowForm(false);
+                      setEditService(null);
+                    }}
+                    loading={loading}
+                  />
+                </div>
+              )}
+            </div>
           </section>
         </div>
         <Footer />

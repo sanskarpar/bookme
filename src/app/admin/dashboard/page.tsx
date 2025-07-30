@@ -547,7 +547,7 @@ export default function SalonDashboard() {
                             </td>
                             <td className="px-2 sm:px-6 py-3 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
                               {booking.status === 'upcoming' && (
-                                <div className="flex flex-col sm:flex-row gap-1 sm:gap-0 justify-end items-end">
+                                <div className="flex justify-end items-center gap-1 sm:gap-2 -mr-2 sm:-mr-6">
                                   <button
                                     onClick={() => handleBookingAction(booking.id, 'no-show')}
                                     className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-2 sm:px-3 py-1 rounded-md text-xs font-medium"

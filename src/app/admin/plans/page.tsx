@@ -207,7 +207,6 @@ export default function PlansPage() {
 									height: 420,
 								}}
 							>
-								{/* Nur für Gründer removed */}
 								{/* Current plan indicator */}
 								{isCurrentPlan && (
 									<div
@@ -225,6 +224,43 @@ export default function PlansPage() {
 										}}
 									>
 										Aktiv
+									</div>
+								)}
+								{/* Add access level indicator */}
+								{plan.id === 'startup' && (
+									<div
+										style={{
+											position: "absolute",
+											top: -18,
+											left: 12,
+											background: "#f59e0b",
+											color: "#fff",
+											borderRadius: 8,
+											padding: "0.2rem 0.8rem",
+											fontWeight: 600,
+											fontSize: "0.75rem",
+											boxShadow: "0 1px 4px #0002",
+										}}
+									>
+										Basis
+									</div>
+								)}
+								{plan.id === 'unicorn' && (
+									<div
+										style={{
+											position: "absolute",
+											top: -18,
+											left: 12,
+											background: "#8b5cf6",
+											color: "#fff",
+											borderRadius: 8,
+											padding: "0.2rem 0.8rem",
+											fontWeight: 600,
+											fontSize: "0.75rem",
+											boxShadow: "0 1px 4px #0002",
+										}}
+									>
+										Premium
 									</div>
 								)}
 								<h2
@@ -255,6 +291,22 @@ export default function PlansPage() {
 								>
 									{plan.description}
 								</div>
+								{/* Add access restrictions notice */}
+								{plan.id === 'startup' && (
+									<div
+										style={{
+											background: "#fef3c7",
+											color: "#92400e",
+											padding: "8px",
+											borderRadius: 6,
+											fontSize: "0.85rem",
+											marginBottom: 12,
+											fontWeight: 500,
+										}}
+									>
+										⚠️ Kein Zugriff auf Kalender & Analytics
+									</div>
+								)}
 								<ul
 									style={{
 										paddingLeft: 18,

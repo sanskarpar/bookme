@@ -1410,16 +1410,23 @@ export default function AdminDashboard() {
                             background: "#fff",
                           }}
                         >
-                          {plans.map(plan => (
-                            <option key={plan.id} value={plan.id}>
-                              {plan.name} - €{plan.price}/Monat
-                            </option>
-                          ))}
+                          <option value="founders">Founders Plan - €0/Monat</option>
+                          <option value="startup">Startup Plan - €29/Monat</option>
+                          <option value="grow">Grow Plan - €59/Monat</option>
+                          <option value="unicorn">Unicorn Plan - €99/Monat</option>
+                          <option value="custom">Custom Plan - Individuell</option>
                         </select>
                         <div style={{ fontSize: "0.8rem", color: "#666", marginTop: 2 }}>
                           {(() => {
-                            const currentPlan = plans.find(p => p.id === (salon.plan || "founders"));
-                            return currentPlan ? currentPlan.description : "Plan nicht gefunden";
+                            const planDescriptions: Record<"founders" | "startup" | "grow" | "unicorn" | "custom", string> = {
+                              founders: "Alle Features inklusive - Kostenlos für neue Kunden",
+                              startup: "Basis Features - Keine Analytics/Kalender",
+                              grow: "Mit Kalender für wachsende Salons",
+                              unicorn: "Premium Features mit vollständiger Analytics",
+                              custom: "Individueller Plan nach Absprache"
+                            };
+                            const planKey = (salon.plan || "founders") as "founders" | "startup" | "grow" | "unicorn" | "custom";
+                            return planDescriptions[planKey] || "Plan nicht gefunden";
                           })()}
                         </div>
                       </div>
@@ -1533,11 +1540,11 @@ export default function AdminDashboard() {
                                 background: "#fff",
                               }}
                             >
-                              {plans.map(plan => (
-                                <option key={plan.id} value={plan.id}>
-                                  {plan.name} - €{plan.price}/Monat
-                                </option>
-                              ))}
+                              <option value="founders">Founders Plan - €0/Monat</option>
+                              <option value="startup">Startup Plan - €29/Monat</option>
+                              <option value="grow">Grow Plan - €59/Monat</option>
+                              <option value="unicorn">Unicorn Plan - €99/Monat</option>
+                              <option value="custom">Custom Plan - Individuell</option>
                             </select>
                           </div>
                         </div>

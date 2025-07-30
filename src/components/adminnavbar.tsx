@@ -141,7 +141,7 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
       "custom": "Custom Plan"
     };
     
-    return planNames[planId] || "Founders Plan";
+    return planNames[planId] || planId.charAt(0).toUpperCase() + planId.slice(1) + " Plan";
   };
 
   // Use salon prop directly

@@ -240,11 +240,15 @@ export default function EmployeePage() {
   function getDatesInRange(start: string, end: string): string[] {
     const dates: string[] = [];
     if (!start || !end) return dates;
-    let current = new Date(start);
-    const endDate = new Date(end);
+    
+    // Use UTC to avoid DST issues
+    let current = new Date(start + 'T00:00:00.000Z');
+    const endDate = new Date(end + 'T00:00:00.000Z');
+    
     while (current <= endDate) {
       dates.push(current.toISOString().slice(0, 10));
-      current.setDate(current.getDate() + 1);
+      // Use UTC methods to avoid DST issues
+      current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
     }
     return dates;
   }
@@ -359,6 +363,15 @@ export default function EmployeePage() {
     });
   };
 
+  // --- Employee statistics for cards ---
+  const employeeStats = React.useMemo(() => {
+    const total = employees.length;
+    const withServices = employees.filter(e => e.services && e.services.length > 0).length;
+    const withoutServices = total - withServices;
+    const withImage = employees.filter(e => !!e.imageUrl).length;
+    return { total, withServices, withoutServices, withImage };
+  }, [employees]);
+
   if (loading) {
     return (
       <>
@@ -396,14 +409,14 @@ export default function EmployeePage() {
         currentPath="/admin/employee"
         viewingSalonUid={viewingSalonUid}
         salonName={salon?.name}
-        salon={salon} // <-- Pass salon object here
+        salon={salon}
       />
-      <main className="min-h-screen bg-gray-50 font-sans p-0">
-        <div className="max-w-4xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
+      <main className="min-h-screen bg-gray-50 font-sans p-0 transition-all duration-300">
+        <div className="max-w-7xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
           {/* Header */}
           <div className="mb-8 text-center">
             <h1 className="text-2xl sm:text-3xl font-bold text-black mb-2">
-              Mitarbeiter Verwaltung
+              Mitarbeiterverwaltung
               {viewingSalonUid && isSystemAdmin && (
                 <span className="text-lg text-gray-600 block mt-1">(System-Ansicht für {salon?.name})</span>
               )}
@@ -413,302 +426,366 @@ export default function EmployeePage() {
             </p>
           </div>
 
-          <form onSubmit={handleUpdate} className="space-y-8">
-            {/* Employees Card */}
-            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-base sm:text-lg font-semibold text-black mb-4 flex items-center gap-2">
-                <span className="inline-flex items-center justify-center w-8 h-8 rounded bg-primary-600 text-white font-bold">E</span>
-                Mitarbeiter & Arbeitszeiten
-              </h3>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 flex-wrap">
+          {/* Controls */}
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-4 flex-1">
                 <input
                   type="text"
                   value={newEmployeeName}
                   onChange={e => setNewEmployeeName(e.target.value)}
                   placeholder="Name des Mitarbeiters"
-                  className="border rounded-md px-2 py-2 sm:px-3 text-black font-semibold shadow-sm w-full sm:w-auto"
-                  style={{ color: "#000" }}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
                 />
                 <input
                   type="email"
                   value={newEmployeeEmail}
                   onChange={e => setNewEmployeeEmail(e.target.value)}
                   placeholder="E-Mail (optional)"
-                  className="border rounded-md px-2 py-2 sm:px-3 text-black font-semibold shadow-sm w-full sm:w-auto"
-                  style={{ color: "#000" }}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
                 />
-                <button
-                  type="button"
-                  onClick={handleAddEmployee}
-                  className="bg-primary-600 hover:bg-primary-700 px-4 sm:px-5 py-2 rounded-md font-semibold shadow-sm transition w-full sm:w-auto"
-                  style={{ color: "#000" }}
-                >
-                  Hinzufügen
-                </button>
               </div>
-              {employees.length === 0 && (
-                <div className="text-black text-sm mb-2">Keine Mitarbeiter eingetragen.</div>
-              )}
-              {employees.map((emp, idx) => (
-                <div key={idx} className="mb-6 border rounded-lg p-4 bg-gray-50 shadow-sm">
-                  <div className="flex items-center justify-between cursor-pointer gap-2" onClick={() => handleExpandEmployee(idx)}>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* Show employee image if available */}
-                      {emp.imageUrl && (
-                        <img
-                          src={emp.imageUrl}
-                          alt={emp.name}
-                          className="w-10 h-10 object-cover rounded-full border"
-                        />
-                      )}
-                      <span className="font-semibold text-black">{emp.name}</span>
-                      {emp.email && (
-                        <span className="text-xs text-black">({emp.email})</span>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={e => { e.stopPropagation(); handleRemoveEmployee(idx); }}
-                        className="text-xs text-red-600 px-2 py-1 rounded-md hover:bg-red-50 font-bold"
-                        style={{ color: "#000" }}
-                      >
-                        Entfernen
-                      </button>
-                      <button
-                        type="button"
-                        className="text-xs px-2 py-1 rounded-md border border-gray-300 bg-white shadow-sm"
-                        style={{ color: "#000" }}
-                      >
-                        {expandedEmployeeIdx === idx ? "Schließen" : "Details"}
-                      </button>
-                    </div>
-                  </div>
-                  {expandedEmployeeIdx === idx && (
-                    <div className="mt-4">
-                      {/* Editable image and description */}
-                      <div className="flex items-center gap-4 mb-3">
-                        <div>
-                          <label
-                            htmlFor={`employee-image-upload-${idx}`}
-                            className="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-3 py-1 rounded-md shadow-sm cursor-pointer text-xs"
-                            style={{ color: "#000", display: "inline-block" }}
-                          >
-                            Upload
-                          </label>
-                          <input
-                            id={`employee-image-upload-${idx}`}
-                            type="file"
-                            accept="image/*"
-                            onChange={e => {
-                              const file = e.target.files?.[0];
-                              if (file) handleEditEmployeeImage(idx, file);
-                            }}
-                            className="hidden"
-                          />
-                        </div>
-                        {emp.imageUrl && (
-                          <img
-                            src={emp.imageUrl}
-                            alt={emp.name}
-                            className="w-12 h-12 object-cover rounded-full border"
-                          />
-                        )}
-                      </div>
-                      <div className="mb-3">
-                        <input
-                          type="text"
-                          value={emp.description || ""}
-                          onChange={e => handleEditEmployeeDescription(idx, e.target.value)}
-                          placeholder="Beschreibung (optional)"
-                          className="border rounded-md px-2 py-2 text-black font-semibold shadow-sm w-full"
-                          style={{ color: "#000" }}
-                        />
-                      </div>
-                      <div className="mb-3 font-semibold text-black">Arbeitszeiten</div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-xs sm:text-base">
-                          <thead>
-                            <tr>
-                              <th className="text-left text-black font-semibold py-2 px-3">Tag</th>
-                              <th className="text-center text-black font-semibold py-2 px-3">Geöffnet</th>
-                              <th className="text-center text-black font-semibold py-2 px-3">Start</th>
-                              <th className="text-center text-black font-semibold py-2 px-3">Ende</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {WEEKDAYS.map(day => (
-                              <tr key={day} className="bg-white border-b">
-                                <td className="py-2 px-3 font-medium text-black">{day}</td>
-                                <td className="py-2 px-3 text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={emp.schedule[day]?.open ?? false}
-                                    onChange={e => handleEmployeeScheduleChange(idx, day, "open", e.target.checked)}
-                                    className="accent-primary-600 w-5 h-5"
-                                  />
-                                </td>
-                                <td className="py-2 px-3 text-center">
-                                  <input
-                                    type="time"
-                                    value={emp.schedule[day]?.start ?? "09:00"}
-                                    onChange={e => handleEmployeeScheduleChange(idx, day, "start", e.target.value)}
-                                    disabled={!emp.schedule[day]?.open}
-                                    className="border rounded-md px-3 py-1 text-black bg-white font-semibold shadow-sm w-28"
-                                    style={{ color: "#000" }}
-                                  />
-                                </td>
-                                <td className="py-2 px-3 text-center">
-                                  <input
-                                    type="time"
-                                    value={emp.schedule[day]?.end ?? "18:00"}
-                                    onChange={e => handleEmployeeScheduleChange(idx, day, "end", e.target.value)}
-                                    disabled={!emp.schedule[day]?.open}
-                                    className="border rounded-md px-3 py-1 text-black bg-white font-semibold shadow-sm w-28"
-                                    style={{ color: "#000" }}
-                                  />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div className="mb-3 font-semibold text-black mt-4">Feiertage / Urlaub</div>
-                      <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 sm:gap-3 mb-3">
-                        {/* Single day holiday */}
-                        <input
-                          type="date"
-                          value={newEmployeeHoliday[idx] ?? ""}
-                          onChange={e => handleEmployeeHolidayChange(idx, e.target.value)}
-                          className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white font-semibold shadow-sm w-full sm:w-auto"
-                          style={{ color: "#000" }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleAddEmployeeHoliday(idx)}
-                          className="bg-primary-600 hover:bg-primary-700 px-4 sm:px-5 py-2 rounded-md font-semibold shadow-sm transition w-full sm:w-auto"
-                          style={{ color: "#000" }}
+                {/* Make the button always visible, not wrapped in flex-1 */}
+                <button
+                type="button"
+                onClick={handleAddEmployee}
+                className="bg-primary-600 hover:bg-primary-700 px-4 py-2 rounded-md font-medium flex items-center gap-2 mt-4 sm:mt-0 border"
+                style={{ minWidth: 140, color: "#000", borderColor: "#000" }}
+                >
+                + Hinzufügen
+                </button>
+            </div>
+          </div>
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-600 mb-1">Gesamt Mitarbeiter</h3>
+              <p className="text-2xl font-bold text-black">{employeeStats.total}</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-600 mb-1">Mit Services</h3>
+              <p className="text-2xl font-bold text-green-600">{employeeStats.withServices}</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-600 mb-1">Ohne Services</h3>
+              <p className="text-2xl font-bold text-red-600">{employeeStats.withoutServices}</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-600 mb-1">Mit Bild</h3>
+              <p className="text-2xl font-bold text-black">{employeeStats.withImage}</p>
+            </div>
+          </div>
+
+          {/* Employees Table */}
+          <form onSubmit={handleUpdate} className="space-y-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Mitarbeiter
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        E-Mail
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Services
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Bild
+                      </th>
+                      {/* Aktionen moved to end */}
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
+                        Aktionen
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {employees.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-gray-500">
+                          Keine Mitarbeiter eingetragen.
+                        </td>
+                      </tr>
+                    )}
+                    {employees.map((emp, idx) => (
+                      <React.Fragment key={idx}>
+                        <tr
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => setExpandedEmployeeIdx(expandedEmployeeIdx === idx ? null : idx)}
                         >
-                          + Urlaubstag
-                        </button>
-                      </div>
-                      {/* Holiday range - moved below */}
-                      <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 sm:gap-3 mb-3">
-                        <input
-                          type="date"
-                          value={newEmployeeHolidayRange[idx]?.start ?? ""}
-                          onChange={e => handleEmployeeHolidayRangeChange(idx, "start", e.target.value)}
-                          className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white font-semibold shadow-sm w-full sm:w-auto"
-                          style={{ color: "#000" }}
-                        />
-                        <span className="text-black text-xs font-semibold">bis</span>
-                        <input
-                          type="date"
-                          value={newEmployeeHolidayRange[idx]?.end ?? ""}
-                          onChange={e => handleEmployeeHolidayRangeChange(idx, "end", e.target.value)}
-                          className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white font-semibold shadow-sm w-full sm:w-auto"
-                          style={{ color: "#000" }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleAddEmployeeHolidayRange(idx)}
-                          className="bg-primary-600 hover:bg-primary-700 px-4 sm:px-5 py-2 rounded-md font-semibold shadow-sm transition w-full sm:w-auto"
-                          style={{ color: "#000" }}
-                        >
-                          + Bereich
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {/* Show holiday ranges as a range, but store all dates individually */}
-                        {(!emp.holidays || emp.holidays.length === 0) && <span className="text-black text-sm">Keine Urlaubstage eingetragen.</span>}
-                        {emp.holidays && emp.holidays.length > 0 && (() => {
-                          // Group holidays into ranges
-                          const sorted = [...emp.holidays].sort();
-                          const ranges: { start: string, end: string }[] = [];
-                          let rangeStart = sorted[0];
-                          let prev = sorted[0];
-                          
-                          for (let i = 1; i < sorted.length; i++) {
-                            const curr = sorted[i];
-                            const prevDate = new Date(prev + 'T00:00:00');
-                            const currDate = new Date(curr + 'T00:00:00');
-                            const nextDay = new Date(prevDate);
-                            nextDay.setDate(nextDay.getDate() + 1);
-                            
-                            // Check if current date is exactly one day after previous date
-                            if (currDate.getTime() !== nextDay.getTime()) {
-                              ranges.push({ start: rangeStart, end: prev });
-                              rangeStart = curr;
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {emp.imageUrl && (
+                                <img
+                                  src={emp.imageUrl}
+                                  alt={emp.name}
+                                  className="w-8 h-8 object-cover rounded-full border"
+                                />
+                              )}
+                              <span className="text-sm font-medium text-black">{emp.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {emp.email || "-"}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-black">
+                            {emp.services && emp.services.length > 0
+                              ? emp.services.map(sid => services.find(s => s._id === sid)?.name).filter(Boolean).join(", ")
+                              : <span className="text-gray-400">Keine</span>
                             }
-                            prev = curr;
-                          }
-                          ranges.push({ start: rangeStart, end: prev });
-                          
-                          return ranges.map(({ start, end }) => (
-                            <span key={start + "-" + end} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full text-black font-medium shadow-sm">
-                              <span>
-                                {start === end
-                                  ? start
-                                  : `${start} bis ${end}`}
-                              </span>
-                              {/* Remove all dates in this range */}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            {emp.imageUrl
+                              ? <img src={emp.imageUrl} alt={emp.name} className="w-8 h-8 object-cover rounded-full border" />
+                              : <span className="text-gray-400">-</span>
+                            }
+                          </td>
+                          {/* Aktionen at end, right-aligned */}
+                          <td className="px-4 py-4 whitespace-nowrap text-right">
+                            <div className="flex justify-end gap-2">
                               <button
                                 type="button"
-                                onClick={() => {
-                                  const datesToRemove: string[] = [];
-                                  let d = new Date(start + 'T00:00:00');
-                                  const endDate = new Date(end + 'T00:00:00');
-                                  while (d <= endDate) {
-                                    datesToRemove.push(d.toISOString().slice(0, 10));
-                                    d.setDate(d.getDate() + 1);
-                                  }
-                                  setEmployees(prev => {
-                                    const updated = [...prev];
-                                    updated[idx].holidays = updated[idx].holidays?.filter(date => !datesToRemove.includes(date)) ?? [];
-                                    return updated;
-                                  });
-                                }}
-                                className="text-red-600 text-xs px-2 py-1 rounded-full hover:bg-red-50 font-bold transition"
+                                onClick={e => { e.stopPropagation(); handleRemoveEmployee(idx); }}
+                                className="text-xs text-red-600 px-2 py-1 rounded-md hover:bg-red-50"
+                              >
+                                Entfernen
+                              </button>
+                              <button
+                                type="button"
+                                className="text-xs px-2 py-1 rounded-md border border-gray-300 bg-white shadow-sm"
                                 style={{ color: "#000" }}
                               >
-                                ×
+                                {expandedEmployeeIdx === idx ? "Schließen" : "Details"}
                               </button>
-                            </span>
-                          ));
-                        })()}
-                      </div>
-                      <div className="mb-3 font-semibold text-black">Services</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-                        {services.length === 0 ? (
-                          <div className="text-black text-sm">
-                            {salon?.uid ? 'Keine Services verfügbar. Erstellen Sie zuerst Services für Ihren Salon.' : 'Salon UID nicht gefunden.'}
-                          </div>
-                        ) : (
-                          services.map(service => (
-                            <label key={service._id} className="flex items-center gap-2 text-black cursor-pointer hover:bg-gray-100 p-2 rounded-md transition">
-                              <input
-                                type="checkbox"
-                                checked={emp.services?.includes(service._id) ?? false}
-                                onChange={() => handleEmployeeServiceToggle(idx, service._id)}
-                                className="accent-primary-600 w-4 h-4"
-                              />
-                              <span className="select-none">{service.name}</span>
-                            </label>
-                          ))
+                            </div>
+                          </td>
+                        </tr>
+                        {expandedEmployeeIdx === idx && (
+                          <tr>
+                            <td colSpan={5} className="bg-gray-50 px-6 py-6">
+                              {/* Editable image and description */}
+                              <div className="flex items-center gap-4 mb-3">
+                                <div>
+                                  <label
+                                    htmlFor={`employee-image-upload-${idx}`}
+                                    className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded-md shadow-sm cursor-pointer text-xs"
+                                    style={{ color: "#000", display: "inline-block" }}
+                                  >
+                                    Upload
+                                  </label>
+                                  <input
+                                    id={`employee-image-upload-${idx}`}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={e => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleEditEmployeeImage(idx, file);
+                                    }}
+                                    className="hidden"
+                                  />
+                                </div>
+                                {emp.imageUrl && (
+                                  <img
+                                    src={emp.imageUrl}
+                                    alt={emp.name}
+                                    className="w-12 h-12 object-cover rounded-full border"
+                                  />
+                                )}
+                              </div>
+                              <div className="mb-3">
+                                <input
+                                  type="text"
+                                  value={emp.description || ""}
+                                  onChange={e => handleEditEmployeeDescription(idx, e.target.value)}
+                                  placeholder="Beschreibung (optional)"
+                                  className="border rounded-md px-2 py-2 text-black shadow-sm w-full"
+                                />
+                              </div>
+                              <div className="mb-3 text-black">Arbeitszeiten</div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-xs sm:text-base">
+                                  <thead>
+                                    <tr>
+                                      <th className="text-left text-black py-2 px-3">Tag</th>
+                                      <th className="text-center text-black py-2 px-3">Geöffnet</th>
+                                      <th className="text-center text-black py-2 px-3">Start</th>
+                                      <th className="text-center text-black py-2 px-3">Ende</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {WEEKDAYS.map(day => (
+                                      <tr key={day} className="bg-white border-b">
+                                        <td className="py-2 px-3 text-black">{day}</td>
+                                        <td className="py-2 px-3 text-center">
+                                          <input
+                                            type="checkbox"
+                                            checked={emp.schedule[day]?.open ?? false}
+                                            onChange={e => handleEmployeeScheduleChange(idx, day, "open", e.target.checked)}
+                                            className="accent-primary-600 w-5 h-5"
+                                          />
+                                        </td>
+                                        <td className="py-2 px-3 text-center">
+                                          <input
+                                            type="time"
+                                            value={emp.schedule[day]?.start ?? "09:00"}
+                                            onChange={e => handleEmployeeScheduleChange(idx, day, "start", e.target.value)}
+                                            disabled={!emp.schedule[day]?.open}
+                                            className="border rounded-md px-3 py-1 text-black bg-white shadow-sm w-28"
+                                            style={{ color: "#000" }}
+                                          />
+                                        </td>
+                                        <td className="py-2 px-3 text-center">
+                                          <input
+                                            type="time"
+                                            value={emp.schedule[day]?.end ?? "18:00"}
+                                            onChange={e => handleEmployeeScheduleChange(idx, day, "end", e.target.value)}
+                                            disabled={!emp.schedule[day]?.open}
+                                            className="border rounded-md px-3 py-1 text-black bg-white shadow-sm w-28"
+                                            style={{ color: "#000" }}
+                                          />
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <div className="mb-3 text-black mt-4">Feiertage / Urlaub</div>
+                              <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                                {/* Single day holiday */}
+                                <input
+                                  type="date"
+                                  value={newEmployeeHoliday[idx] ?? ""}
+                                  onChange={e => handleEmployeeHolidayChange(idx, e.target.value)}
+                                  className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white shadow-sm w-full sm:w-auto"
+                                  style={{ color: "#000" }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddEmployeeHoliday(idx)}
+                                  className="bg-primary-600 hover:bg-primary-700 px-4 sm:px-5 py-2 rounded-md shadow-sm transition w-full sm:w-auto"
+                                  style={{ color: "#000" }}
+                                >
+                                  + Urlaubstag
+                                </button>
+                              </div>
+                              {/* Holiday range - moved below */}
+                              <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                                <input
+                                  type="date"
+                                  value={newEmployeeHolidayRange[idx]?.start ?? ""}
+                                  onChange={e => handleEmployeeHolidayRangeChange(idx, "start", e.target.value)}
+                                  className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white shadow-sm w-full sm:w-auto"
+                                  style={{ color: "#000" }}
+                                />
+                                <span className="text-black text-xs">bis</span>
+                                <input
+                                  type="date"
+                                  value={newEmployeeHolidayRange[idx]?.end ?? ""}
+                                  onChange={e => handleEmployeeHolidayRangeChange(idx, "end", e.target.value)}
+                                  className="border rounded-md px-2 py-2 sm:px-3 text-black bg-white shadow-sm w-full sm:w-auto"
+                                  style={{ color: "#000" }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddEmployeeHolidayRange(idx)}
+                                  className="bg-primary-600 hover:bg-primary-700 px-4 sm:px-5 py-2 rounded-md shadow-sm transition w-full sm:w-auto"
+                                  style={{ color: "#000" }}
+                                >
+                                  + Bereich
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-2 mb-4">
+                                {/* Show holiday ranges as a range, but store all dates individually */}
+                                {(!emp.holidays || emp.holidays.length === 0) && <span className="text-black text-sm">Keine Urlaubstage eingetragen.</span>}
+                                {emp.holidays && emp.holidays.length > 0 && (() => {
+                                  // Group holidays into ranges
+                                  const sorted = [...emp.holidays].sort();
+                                  const ranges: { start: string, end: string }[] = [];
+                                  let rangeStart = sorted[0];
+                                  let prev = sorted[0];
+                                  for (let i = 1; i < sorted.length; i++) {
+                                    const curr = sorted[i];
+                                    const prevDate = new Date(prev);
+                                    prevDate.setDate(prevDate.getDate() + 1);
+                                    const expected = prevDate.toISOString().slice(0, 10);
+                                    if (curr !== expected) {
+                                      ranges.push({ start: rangeStart, end: prev });
+                                      rangeStart = curr;
+                                    }
+                                    prev = curr;
+                                  }
+                                  ranges.push({ start: rangeStart, end: prev });
+                                  return ranges.map(({ start, end }) => (
+                                    <span key={start + "-" + end} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full text-black shadow-sm">
+                                      <span>
+                                        {start === end
+                                          ? start
+                                          : `${start} bis ${end}`}
+                                      </span>
+                                      {/* Remove all dates in this range */}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const datesToRemove: string[] = [];
+                                          let d = new Date(start);
+                                          const endDate = new Date(end);
+                                          while (d <= endDate) {
+                                            datesToRemove.push(d.toISOString().slice(0, 10));
+                                            d.setDate(d.getDate() + 1);
+                                          }
+                                          setEmployees(prev => {
+                                            const updated = [...prev];
+                                            updated[idx].holidays = updated[idx].holidays?.filter(date => !datesToRemove.includes(date)) ?? [];
+                                            return updated;
+                                          });
+                                        }}
+                                        className="text-red-600 text-xs px-2 py-1 rounded-full hover:bg-red-50 transition"
+                                        style={{ color: "#000" }}
+                                      >
+                                        ×
+                                      </button>
+                                    </span>
+                                  ));
+                                })()}
+                              </div>
+                              <div className="mb-3 text-black">Services</div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+                                {services.length === 0 ? (
+                                  <div className="text-black text-sm">
+                                    {salon?.uid ? 'Keine Services verfügbar. Erstellen Sie zuerst Services für Ihren Salon.' : 'Salon UID nicht gefunden.'}
+                                  </div>
+                                ) : (
+                                  services.map(service => (
+                                    <label key={service._id} className="flex items-center gap-2 text-black cursor-pointer hover:bg-gray-100 p-2 rounded-md transition">
+                                      <input
+                                        type="checkbox"
+                                        checked={emp.services?.includes(service._id) ?? false}
+                                        onChange={() => handleEmployeeServiceToggle(idx, service._id)}
+                                        className="accent-primary-600 w-4 h-4"
+                                      />
+                                      <span className="select-none">{service.name}</span>
+                                    </label>
+                                  ))
+                                )}
+                              </div>
+                            </td>
+                          </tr>
                         )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Save Button */}
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                className="bg-green-400 hover:bg-green-500 text-white font-semibold px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow transition min-w-[120px] sm:min-w-[140px]"
-                style={{ color: "#000" }}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow transition min-w-[120px] sm:min-w-[140px]"
               >
                 Speichern
               </button>
@@ -718,13 +795,13 @@ export default function EmployeePage() {
           {/* Status Message */}
           {status && (
             <div
-              className={`mt-8 flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base ${
+              className={`mt-8 flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-lg text-sm sm:text-base ${
                 status.startsWith("Fehler")
                   ? "bg-red-50 text-black border border-red-200"
                   : "bg-green-50 text-black border border-green-200"
               }`}
             >
-              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full font-bold ${
+              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full ${
                 status.startsWith("Fehler") ? "bg-red-600 text-white" : "bg-green-600 text-white"
               }`}>
                 {status.startsWith("Fehler") ? "!" : "✓"}
