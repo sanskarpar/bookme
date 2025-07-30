@@ -56,8 +56,21 @@ function AnalyticsContent() {
   const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [plans, setPlans] = useState<any[]>([]);
   
   const searchParams = useSearchParams();
+
+  const fetchPlans = async () => {
+    try {
+      const res = await fetch("/api/plans");
+      if (res.ok) {
+        const data = await res.json();
+        setPlans(data.plans || []);
+      }
+    } catch (error) {
+      console.error("Error fetching plans:", error);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -65,6 +78,9 @@ function AnalyticsContent() {
       if (firebaseUser?.email) {
         setLoading(true);
         try {
+          // Fetch plans first
+          await fetchPlans();
+          
           // Check if this is system admin viewing another salon's analytics
           const salonUidParam = searchParams?.get('salonUid');
           const isSystemUser = firebaseUser.email === "system@gmail.com";
@@ -375,17 +391,34 @@ function AnalyticsContent() {
     if (
       userRole === "salon" &&
       !isSystemAdmin &&
-      salon
+      salon &&
+      plans.length > 0
     ) {
-      const hasAnalyticsAccess =
-        salon.plan === "founders" ||
-        salon.plan === "unicorn" ||
-        salon.plan === "custom";
+      // Find plans that have analytics access
+      const analyticsPlans = plans.filter(plan => 
+        plan.features && plan.features.some((feature: string) => 
+          feature.toLowerCase().includes('analytics') || 
+          feature.toLowerCase().includes('analyse') ||
+          feature.toLowerCase().includes('statistik')
+        )
+      );
+      
+      // Also include founders and custom plans by default
+      const foundersOrCustom = plans.some(plan => 
+        (plan.name.toLowerCase() === 'founders' || plan.id === 'founders' ||
+         plan.name.toLowerCase() === 'custom' || plan.id === 'custom') &&
+        (salon.plan === plan.name.toLowerCase() || salon.plan === plan.id)
+      );
+      
+      const hasAnalyticsAccess = analyticsPlans.some(plan => 
+        salon.plan === plan.name.toLowerCase() || salon.plan === plan.id
+      ) || foundersOrCustom;
+      
       setShowPlanModal(!hasAnalyticsAccess);
     } else {
       setShowPlanModal(false);
     }
-  }, [userRole, isSystemAdmin, salon]);
+  }, [userRole, isSystemAdmin, salon, plans]);
 
   if (loading) {
     return <LoadingScreen />;
@@ -710,7 +743,7 @@ function AnalyticsContent() {
         <Footer />
       </main>
       {showPlanModal && (
-        <PlanUpgradeModal plan={salon?.plan} />
+        <PlanUpgradeModal plan={salon?.plan} plans={plans} />
       )}
     </>
   );
@@ -778,39 +811,49 @@ const AuthPrompt = () => (
 );
 
 // Modal overlay for plan upgrade
-const PlanUpgradeModal = ({ plan }: { plan?: string }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
-    <div className="absolute inset-0 backdrop-blur-sm transition-all duration-300" />
-    <div className="relative text-center p-6 bg-white rounded-lg shadow-lg max-w-md mx-4 border-2 border-[#5C6F68]">
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">Analytics nur für Premium-Pläne</h2>
-      <p className="text-gray-600 mb-4">
-        Die Analyse- und Statistikfunktionen sind nur für Founders, Unicorn und Custom Pläne verfügbar.<br />
-        Ihr aktueller Plan: <strong>{plan || "Startup"}</strong>
-      </p>
-      <p className="text-sm text-gray-500 mb-4">
-        Upgraden Sie Ihren Plan, um detaillierte Analytics und Insights zu erhalten.
-      </p>
-      <a
-        href="/admin/plans"
-        className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2 px-4 rounded-md inline-block mr-2"
-      >
-        Plan upgraden
-      </a>
-      <a
-        href="/kontakt"
-        className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md inline-block mr-2"
-      >
-        Kontakt
-      </a>
-      <button
-        onClick={() => window.history.back()}
-        className="mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md"
-      >
-        Zurück
-      </button>
+const PlanUpgradeModal = ({ plan, plans }: { plan?: string; plans: any[] }) => {
+  // Find the current plan details
+  const currentPlan = plans.find(p => 
+    p.name.toLowerCase() === plan?.toLowerCase() || 
+    p.id === plan?.toLowerCase()
+  );
+  
+  const currentPlanName = currentPlan?.name || plan || "Startup";
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
+      <div className="absolute inset-0 backdrop-blur-sm transition-all duration-300" />
+      <div className="relative text-center p-6 bg-white rounded-lg shadow-lg max-w-md mx-4 border-2 border-[#5C6F68]">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Analytics nur für Premium-Pläne</h2>
+        <p className="text-gray-600 mb-4">
+          Die Analyse- und Statistikfunktionen sind nur für bestimmte Pläne verfügbar.<br />
+          Ihr aktueller Plan: <strong>{currentPlanName}</strong>
+        </p>
+        <p className="text-sm text-gray-500 mb-4">
+          Upgraden Sie Ihren Plan, um detaillierte Analytics und Insights zu erhalten.
+        </p>
+        <a
+          href="/admin/plans"
+          className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2 px-4 rounded-md inline-block mr-2"
+        >
+          Plan upgraden
+        </a>
+        <a
+          href="/kontakt"
+          className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-md inline-block mr-2"
+        >
+          Kontakt
+        </a>
+        <button
+          onClick={() => window.history.back()}
+          className="mt-4 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md"
+        >
+          Zurück
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Main page component with Suspense boundary
 function AnalyticsPage() {

@@ -650,10 +650,10 @@ export default function ServicesPage() {
                         </div>
                         <div className="flex flex-wrap gap-2 mt-1 text-xs sm:text-sm font-inter text-black">
                           {s.durationPrices && s.durationPrices.length > 0 ? (
-                            <span className="text-black font-semibold">
+                            <span className="text-black">
                               {s.durationPrices.map((dp: any, i: number) => (
-                                <span key={i} className="inline-block mr-3 px-2 py-1 bg-gray-100 rounded font-mono text-xs sm:text-sm font-semibold text-black border border-gray-200">
-                                  {dp.duration}min: <span className="text-green-700 font-bold">€{dp.price}</span>
+                                <span key={i} className="inline-block mr-3 px-2 py-1 bg-gray-100 rounded font-mono text-xs sm:text-sm text-black border border-gray-200">
+                                  {dp.duration}min: <span className="text-green-700">€{dp.price}</span>
                                 </span>
                               ))}
                             </span>

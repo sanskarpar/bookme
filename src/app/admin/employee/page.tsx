@@ -374,36 +374,36 @@ export default function EmployeePage() {
 
   if (loading) {
     return (
-      <>
+      <div className="min-h-screen flex flex-col">
         <Navbar user={user} salonName={salon?.name} salon={salon} />
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
+        <main className="flex-1 bg-gray-50 flex items-center justify-center font-sans">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mx-auto mb-4"></div>
             <p className="text-black text-lg">Lade Mitarbeiter...</p>
           </div>
         </main>
         <Footer />
-      </>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <>
+      <div className="min-h-screen flex flex-col">
         <Navbar user={user} viewingSalonUid={viewingSalonUid} salonName={salon?.name} salon={salon} />
-        <main className="min-h-screen bg-gray-50 flex items-center justify-center font-sans">
+        <main className="flex-1 bg-gray-50 flex items-center justify-center font-sans">
           <div className="text-center p-6 bg-white rounded-lg shadow-sm max-w-md mx-4">
             <h2 className="text-xl font-semibold text-black mb-2">Bitte einloggen</h2>
             <p className="text-black mb-4">Melden Sie sich an, um die Mitarbeiter zu verwalten.</p>
           </div>
         </main>
         <Footer />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Navbar
         user={user}
         currentPath="/admin/employee"
@@ -411,7 +411,7 @@ export default function EmployeePage() {
         salonName={salon?.name}
         salon={salon}
       />
-      <main className="min-h-screen bg-gray-50 font-sans p-0 transition-all duration-300">
+      <main className="flex-1 bg-gray-50 font-sans p-0 transition-all duration-300">
         <div className="max-w-7xl mx-auto py-8 px-2 sm:px-4 lg:px-8">
           {/* Header */}
           <div className="mb-8 text-center">
@@ -812,6 +812,6 @@ export default function EmployeePage() {
         </div>
         <Footer />
       </main>
-    </>
+    </div>
   );
 }

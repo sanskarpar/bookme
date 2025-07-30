@@ -556,7 +556,7 @@ export default function SalonDashboard() {
                                   </button>
                                   <button
                                     onClick={() => handleBookingAction(booking.id, 'complete')}
-                                    className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-2 sm:px-3 py-1 rounded-md text-xs font-medium"
+                                    className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-2 sm:px-3 py-1 rounded-md text-xs font-medium mr-3"
                                   >
                                     Abschließen
                                   </button>
