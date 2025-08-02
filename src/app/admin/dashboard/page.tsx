@@ -97,7 +97,8 @@ export default function SalonDashboard() {
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>(() => {
     const now = new Date();
-    return now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    // Only show hours and minutes
+    return now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   });
 
   // Get current user and fetch salon info and role
@@ -187,7 +188,8 @@ export default function SalonDashboard() {
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
-      setCurrentTime(now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      // Only show hours and minutes
+      setCurrentTime(now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
