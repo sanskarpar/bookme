@@ -16,6 +16,23 @@ export default function Footer() {
         textAlign: "center",
       }}
     >
+      {/* Announcement Bar */}
+      <div
+        style={{
+          background: COLORS.accent,
+          color: COLORS.primary,
+          padding: "0.5rem 1rem",
+          borderRadius: "8px",
+          fontWeight: 600,
+          fontSize: "1.1rem",
+          margin: "0 auto 2rem auto",
+          maxWidth: 420,
+          letterSpacing: 1,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        }}
+      >
+        MollyTime
+      </div>
       {/* Legal Links Section */}
       <div style={{ 
         display: "flex",
@@ -91,14 +108,14 @@ export default function Footer() {
         fontSize: "0.95rem",
         marginBottom: "8px"
       }}>
-        hello@bookme.com
+        hello@mollytime.com
       </div>
       <div style={{ 
         fontSize: "0.9rem", 
         opacity: 0.7,
         letterSpacing: 0.5
       }}>
-        © {new Date().getFullYear()} bookme. All rights reserved.
+        © {new Date().getFullYear()} mollytime. All rights reserved.
       </div>
     </footer>
   );

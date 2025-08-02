@@ -418,55 +418,7 @@ const EnhancedCalendarWidget = ({
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Wochenübersicht - moved above calendar header */}
-      <div className="bg-gradient-to-r from-slate-50 to-gray-50 p-4 sm:p-6 rounded-xl border border-slate-200">
-        <h4 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-base sm:text-lg">Wochenübersicht</h4>
-        <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-7 gap-4'}`}>
-          {weekDays.map(day => {
-            const dayBookings = bookings.filter(b => b.date === day.date);
-            return (
-              <div key={day.date} className={`text-center p-2 sm:p-3 rounded-lg shadow-sm border ${
-                day.isHoliday 
-                  ? 'bg-red-50 border-red-200' 
-                  : !day.isOpen 
-                    ? 'bg-gray-100 border-gray-200 opacity-60' 
-                    : 'bg-white border-gray-100'
-              }`}>
-                <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">{day.dayName}</div>
-                <div className={`text-xl sm:text-2xl font-bold mb-1 ${
-                  day.isHoliday ? 'text-black' : !day.isOpen ? 'text-gray-400' : 'text-gray-900'
-                }`}>
-                  {day.isHoliday ? '🏖️' : !day.isOpen ? '❌' : dayBookings.length}
-                </div>
-                <div className={`text-xs font-medium ${
-                  day.isHoliday
-                    ? 'text-black'
-                    : !day.isOpen
-                      ? 'text-black'
-                      : 'text-black'
-                }`}>
-                  {day.isHoliday 
-                    ? 'Feiertag' 
-                    : !day.isOpen 
-                      ? 'Geschlossen' 
-                      : dayBookings.length === 1 
-                        ? 'Termin' 
-                        : 'Termine'
-                  }
-                </div>
-                {day.workingHours && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    {isMobile 
-                      ? `${day.workingHours.start.split(':')[0]}-${day.workingHours.end.split(':')[0]}` 
-                      : `${day.workingHours.start}-${day.workingHours.end}`
-                    }
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Wochenübersicht - removed */}
 
       {/* Calendar Header with Navigation */}
       <div className="flex items-center justify-between bg-slate-50 p-3 sm:p-5 rounded-xl border border-slate-200">
@@ -534,42 +486,57 @@ const EnhancedCalendarWidget = ({
                 <div className="flex-shrink-0 w-16 p-2 text-center border-r border-gray-200">
                   <span className="text-xs font-semibold text-gray-600">Zeit</span>
                 </div>
-                {weekDays.map(day => (
-                  <div 
-                    key={day.date} 
-                    className={`flex-1 min-w-[100px] p-2 text-center border-r border-gray-200 last:border-r-0 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      day.isToday 
-                        ? 'bg-blue-100 text-blue-900' 
-                        : day.isCurrentMonth 
-                          ? 'text-gray-900' 
-                          : 'text-gray-400'
-                    } ${
-                      day.isHoliday
-                        ? 'bg-red-50 border-red-100'
-                        : !day.isOpen
-                          ? 'bg-gray-100 opacity-60'
-                          : ''
-                    }`}
-                    onClick={() => onDateClick && onDateClick(day.date)}
-                    title={day.isHoliday ? "Feiertag - Klicken zum Entfernen" : "Klicken um als Feiertag zu markieren"}
-                  >
-                    <div className="text-xs font-medium uppercase tracking-wider mb-1">{day.dayName}</div>
-                    <div className={`text-lg font-bold ${day.isToday ? 'text-blue-800' : ''}`}>
-                      {day.dayNumber}
-                    </div>
-                    {day.isHoliday && (
-                      <div className="text-xs font-medium mt-1 text-black">Feiertag</div>
-                    )}
-                    {!day.isOpen && !day.isHoliday && (
-                      <div className="text-xs text-gray-500 font-medium mt-1">Geschlossen</div>
-                    )}
-                    {day.workingHours && (
-                      <div className="text-xs text-gray-600 mt-1">
-                        {day.workingHours.start.split(':')[0]}-{day.workingHours.end.split(':')[0]}
+                {weekDays.map(day => {
+                  const dayBookings = bookings.filter(b => b.date === day.date);
+                  return (
+                    <div 
+                      key={day.date} 
+                      className={`flex-1 min-w-[100px] p-2 text-center border-r border-gray-200 last:border-r-0 cursor-pointer hover:bg-gray-50 transition-colors ${
+                        day.isToday 
+                          ? 'bg-blue-100 text-blue-900' 
+                          : day.isCurrentMonth 
+                            ? 'text-gray-900' 
+                            : 'text-gray-400'
+                      } ${
+                        day.isHoliday
+                          ? 'bg-red-50 border-red-100'
+                          : !day.isOpen
+                            ? 'bg-gray-100 opacity-60'
+                            : ''
+                      }`}
+                      onClick={() => onDateClick && onDateClick(day.date)}
+                      title={day.isHoliday ? "Feiertag - Klicken zum Entfernen" : "Klicken um als Feiertag zu markieren"}
+                    >
+                      <div className="text-xs font-medium uppercase tracking-wider mb-1">{day.dayName}</div>
+                      <div className={`text-lg font-bold ${day.isToday ? 'text-blue-800' : ''}`}>
+                        {day.dayNumber}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {/* Daily bookings badge */}
+                      <div className="flex justify-center">
+                        <span className={`inline-block text-xs font-semibold rounded-full px-2 py-0.5 mt-1 ${
+                          day.isHoliday || !day.isOpen
+                            ? 'bg-gray-300 text-gray-600'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {dayBookings.length === 1
+                            ? '1 Buchung'
+                            : `${dayBookings.length} Buchungen`}
+                        </span>
+                      </div>
+                      {day.isHoliday && (
+                        <div className="text-xs font-medium mt-1 text-black">Feiertag</div>
+                      )}
+                      {!day.isOpen && !day.isHoliday && (
+                        <div className="text-xs text-gray-500 font-medium mt-1">Geschlossen</div>
+                      )}
+                      {day.workingHours && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          {day.workingHours.start.split(':')[0]}-{day.workingHours.end.split(':')[0]}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               
               {/* Time slots grid */}
@@ -630,6 +597,38 @@ const EnhancedCalendarWidget = ({
                     })}
                   </div>
                 ))}
+
+                {/* Mobile Calendar Header - Added */}
+                <div className="hidden sm:block absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-slate-50 to-white z-10" />
+                <div className="hidden sm:block absolute inset-x-0 top-0 h-12 flex items-center justify-between px-4 sm:px-6 lg:px-8">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => navigateWeek('prev')}
+                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all duration-200 shadow-sm border border-transparent hover:border-gray-200"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {germanMonthNames[currentWeek.getMonth()]} {currentWeek.getFullYear()}
+                    </h3>
+                    <button
+                      onClick={() => navigateWeek('next')}
+                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-white rounded-lg transition-all duration-200 shadow-sm border border-transparent hover:border-gray-200"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                  <button
+                    onClick={goToToday}
+                    className="px-3 py-1.5 text-xs font-medium text-blue-700 hover:text-blue-800 bg-white hover:bg-blue-50 border border-blue-200 hover:border-blue-300 rounded-lg transition-all duration-200 shadow-sm"
+                  >
+                    Heute
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -641,42 +640,57 @@ const EnhancedCalendarWidget = ({
               <div className="p-4 text-center border-r border-gray-200">
                 <span className="text-sm font-semibold text-gray-600">Zeit</span>
               </div>
-              {weekDays.map(day => (
-                <div 
-                  key={day.date} 
-                  className={`p-4 text-center border-r border-gray-200 last:border-r-0 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    day.isToday 
-                      ? 'bg-blue-100 text-blue-900' 
-                      : day.isCurrentMonth 
-                        ? 'text-gray-900' 
-                        : 'text-gray-400'
-                  } ${
-                    day.isHoliday
-                      ? 'bg-red-50 border-red-100'
-                      : !day.isOpen
-                        ? 'bg-gray-100 opacity-60'
-                        : ''
-                  }`}
-                  onClick={() => onDateClick && onDateClick(day.date)}
-                  title={day.isHoliday ? "Feiertag - Klicken zum Entfernen" : "Klicken um als Feiertag zu markieren"}
-                >
-                  <div className="text-xs font-medium uppercase tracking-wider mb-1">{day.dayName}</div>
-                  <div className={`text-xl font-bold ${day.isToday ? 'text-blue-800' : ''}`}>
-                    {day.dayNumber}
-                  </div>
-                  {day.isHoliday && (
-                    <div className="text-xs font-medium mt-1 text-black">Feiertag</div>
-                  )}
-                  {!day.isOpen && !day.isHoliday && (
-                    <div className="text-xs text-gray-500 font-medium mt-1">Geschlossen</div>
-                  )}
-                  {day.workingHours && (
-                    <div className="text-xs text-gray-600 mt-1">
-                      {day.workingHours.start}-{day.workingHours.end}
+              {weekDays.map(day => {
+                const dayBookings = bookings.filter(b => b.date === day.date);
+                return (
+                  <div 
+                    key={day.date} 
+                    className={`p-4 text-center border-r border-gray-200 last:border-r-0 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      day.isToday 
+                        ? 'bg-blue-100 text-blue-900' 
+                        : day.isCurrentMonth 
+                          ? 'text-gray-900' 
+                          : 'text-gray-400'
+                    } ${
+                      day.isHoliday
+                        ? 'bg-red-50 border-red-100'
+                        : !day.isOpen
+                          ? 'bg-gray-100 opacity-60'
+                          : ''
+                    }`}
+                    onClick={() => onDateClick && onDateClick(day.date)}
+                    title={day.isHoliday ? "Feiertag - Klicken zum Entfernen" : "Klicken um als Feiertag zu markieren"}
+                  >
+                    <div className="text-xs font-medium uppercase tracking-wider mb-1">{day.dayName}</div>
+                    <div className={`text-xl font-bold ${day.isToday ? 'text-blue-800' : ''}`}>
+                      {day.dayNumber}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {/* Daily bookings badge */}
+                    <div className="flex justify-center">
+                      <span className={`inline-block text-xs font-semibold rounded-full px-2 py-0.5 mt-1 ${
+                        day.isHoliday || !day.isOpen
+                          ? 'bg-gray-300 text-gray-600'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {dayBookings.length === 1
+                          ? '1 Buchung'
+                          : `${dayBookings.length} Buchungen`}
+                      </span>
+                    </div>
+                    {day.isHoliday && (
+                      <div className="text-xs font-medium mt-1 text-black">Feiertag</div>
+                    )}
+                    {!day.isOpen && !day.isHoliday && (
+                      <div className="text-xs text-gray-500 font-medium mt-1">Geschlossen</div>
+                    )}
+                    {day.workingHours && (
+                      <div className="text-xs text-gray-600 mt-1">
+                        {day.workingHours.start}-{day.workingHours.end}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             
             {/* Time slots grid */}

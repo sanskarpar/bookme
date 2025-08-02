@@ -950,7 +950,7 @@ export default function SalonPage() {
 
         {/* Cart summary fixed popup */}
         {cartServices.length > 0 && (
-          <div className="fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 bg-[#E4DED5] border border-[#9DBE8D] shadow-lg rounded-xl px-2 sm:px-6 py-2 sm:py-3 w-full max-w-xs sm:max-w-sm flex flex-col items-center">
+          <div className="fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 bg-[#E4DED5] border border-[#9DBE8D] shadow-lg rounded-2xl px-4 sm:px-10 py-4 sm:py-6 w-full max-w-md sm:max-w-xl flex flex-col items-center">
             <div className="w-full flex items-center justify-between">
               <div className="text-base sm:text-lg font-semibold text-[#1F1F1F]">
                 Gesamt: €{cartServices.reduce((sum, s) => sum + (s.price || 0), 0)}

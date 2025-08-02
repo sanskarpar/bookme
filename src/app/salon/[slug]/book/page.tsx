@@ -872,7 +872,6 @@ export default function BookingSummaryPage() {
                   
                   {/* Customer Info Fields */}
                   <div className="border-t border-gray-200 pt-4 space-y-4">
-                    <h4 className="text-sm font-medium text-gray-900 uppercase tracking-wider">Kundendaten</h4>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Ihr Name*</label>
                       <input
@@ -901,7 +900,6 @@ export default function BookingSummaryPage() {
                     {/* Customer Address Fields - Only show if salon requires it */}
                     {salon?.storeCustomerAddress && (
                       <div className="space-y-3">
-                        <h5 className="text-sm font-medium text-gray-700">Adresse*</h5>
                         <div className="grid grid-cols-3 gap-2">
                           <div className="col-span-2">
                             <input

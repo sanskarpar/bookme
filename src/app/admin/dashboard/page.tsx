@@ -4,7 +4,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { initializeApp } from "firebase/app";
 import Navbar from "../../../components/adminnavbar";
 import Footer from "@/components/footer";
-import { FiCalendar, FiDollarSign, FiTrendingUp, FiStar, FiClock, FiUser, FiScissors } from "react-icons/fi";
+import { FiCalendar, FiTrendingUp, FiStar, FiClock, FiUser, FiScissors } from "react-icons/fi";
 import { FaEuroSign } from "react-icons/fa";
 
 // Constants
@@ -70,6 +70,9 @@ type StatCard = {
   icon: React.ReactNode;
   trend?: 'up' | 'down' | 'neutral';
   change?: string;
+  // Add optional extra fields for today's bookings
+  upcomingCount?: number;
+  completedCount?: number;
 };
 
 type Activity = {
@@ -92,6 +95,10 @@ export default function SalonDashboard() {
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
+  const [currentTime, setCurrentTime] = useState<string>(() => {
+    const now = new Date();
+    return now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  });
 
   // Get current user and fetch salon info and role
   useEffect(() => {
@@ -175,6 +182,14 @@ export default function SalonDashboard() {
       }
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchTodayBookings = async (salonUid: string, date: string) => {
@@ -307,9 +322,8 @@ export default function SalonDashboard() {
         const todayBookings = bookings.filter((booking: any) => String(booking.date) === todayStr && booking.status !== 'cancelled');
         // Completed bookings today for revenue
         const todayCompletedBookings = todayBookings.filter((booking: any) => booking.status === 'completed');
-
-        // Calculate daily revenue
-        const todayRevenue = todayCompletedBookings.reduce((sum: number, booking: any) => sum + (booking.total || 0), 0);
+        // Upcoming bookings today
+        const todayUpcomingBookings = todayBookings.filter((booking: any) => booking.status === 'confirmed' || booking.status === 'upcoming');
 
         // Find most popular service (from all bookings, regardless of status)
         const serviceCount: {[key: string]: number} = {};
@@ -328,14 +342,11 @@ export default function SalonDashboard() {
           {
             id: 'bookings',
             title: 'Buchungen heute',
-            value: todayBookings.length,
-            icon: <FiCalendar size={24} color="#222" />
-          },
-          {
-            id: 'revenue',
-            title: 'Tageseinnahmen',
-            value: `€${todayRevenue}`,
-            icon: <FaEuroSign size={24} color="#222" />
+            // Show as "upcoming / total" (completed + upcoming)
+            value: `${todayUpcomingBookings.length} / ${todayBookings.length}`,
+            icon: <FiCalendar size={24} color="#222" />,
+            upcomingCount: todayUpcomingBookings.length,
+            completedCount: todayCompletedBookings.length
           },
           {
             id: 'popular',
@@ -452,6 +463,39 @@ export default function SalonDashboard() {
     }).catch(console.error);
   };
 
+  // Find the next appointment (first in sorted todayBookings)
+  const nextAppointment = todayBookings.length > 0 ? todayBookings[0] : null;
+
+  // Prepare stat cards, swap order: Buchungen heute first, then Nächster Termin
+  const statCards = [
+    stats[0], // Buchungen heute
+    {
+      id: 'next',
+      title: 'Nächster Termin',
+      value: nextAppointment
+        ? (
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-base sm:text-lg text-gray-900">{nextAppointment.service}</span>
+              <span className="text-xs text-gray-700">
+                {nextAppointment.time} - {nextAppointment.endTime}
+                <span className="ml-2 text-gray-400">({nextAppointment.duration} min)</span>
+              </span>
+              <span className="text-xs text-gray-700 flex items-center">
+                <FiUser className="mr-1" /> {nextAppointment.customer}
+              </span>
+              {nextAppointment.employee && (
+                <span className="text-xs text-gray-700 flex items-center">
+                  <FiScissors className="mr-1" /> {nextAppointment.employee}
+                </span>
+              )}
+            </div>
+          )
+        : <span className="text-xs text-gray-500">Kein nächster Termin</span>,
+      icon: <FiClock size={24} color="#222" />,
+    },
+    ...stats.slice(1),
+  ];
+
   if (loading) {
     return <LoadingScreen />;
   }
@@ -491,13 +535,16 @@ export default function SalonDashboard() {
                   <span className="text-lg text-gray-600 block mt-1">(System-Ansicht)</span>
                 )}
               </h1>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-1">
+                <span className="text-black text-lg font-mono">{currentTime}</span>
+              </div>
               <p className="text-gray-600 text-sm sm:text-base">
-                Das passiert heute in Ihrem Salon.
+                Das passiert heute in Deinem Salon.
               </p>
             </div>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-              {stats.map((stat) => (
+              {statCards.map((stat) => (
                 <StatCard key={stat.id} stat={stat} />
               ))}
             </div>
@@ -596,7 +643,60 @@ export default function SalonDashboard() {
 }
 
 // Component for stat cards
-const StatCard = ({ stat }: { stat: StatCard }) => {
+const StatCard = ({ stat }: { stat: StatCard | any }) => {
+  // Special rendering for "Buchungen heute"
+  if (stat.id === 'bookings' && typeof stat.upcomingCount === 'number' && typeof stat.completedCount === 'number') {
+    return (
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-2 sm:mb-0 border border-gray-100 flex items-center min-h-[90px]">
+        <div className="flex-1 flex flex-col justify-center">
+          <p className="text-xs sm:text-sm font-normal text-gray-500">{stat.title}</p>
+          <div className="mt-1 flex items-end gap-2">
+            <span className="text-2xl sm:text-3xl font-semibold text-gray-900">{stat.upcomingCount}</span>
+            <span className="text-base sm:text-lg text-gray-400">/</span>
+            <span className="text-lg sm:text-xl font-medium text-green-700">{stat.completedCount}</span>
+          </div>
+          <div className="flex gap-2 mt-1">
+            <span className="text-xs text-gray-500">offen</span>
+            <span className="text-xs text-green-700">abgeschlossen</span>
+          </div>
+        </div>
+        <div className="flex-shrink-0 flex items-center justify-center ml-4">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-[#e4ded5] to-[#9dbe8d]/30 shadow-inner border border-gray-200">
+            <span className="text-primary-600 flex items-center justify-center" style={{ lineHeight: 0 }}>
+              {typeof stat.icon === "function"
+                ? React.createElement(stat.icon, { size: 28, color: "#222" })
+                : React.isValidElement(stat.icon)
+                  ? React.cloneElement(stat.icon as React.ReactElement<any>, { color: "#222", size: 28 })
+                  : stat.icon}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // Special rendering for "Nächster Termin"
+  if (stat.id === 'next') {
+    return (
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-2 sm:mb-0 border border-gray-100 flex items-center min-h-[90px]">
+        <div className="flex-1 flex flex-col justify-center">
+          <p className="text-xs sm:text-sm font-normal text-gray-500">{stat.title}</p>
+          <div className="mt-1">{stat.value}</div>
+        </div>
+        <div className="flex-shrink-0 flex items-center justify-center ml-4">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-[#e4ded5] to-[#9dbe8d]/30 shadow-inner border border-gray-200">
+            <span className="text-primary-600 flex items-center justify-center" style={{ lineHeight: 0 }}>
+              {typeof stat.icon === "function"
+                ? React.createElement(stat.icon, { size: 28, color: "#222" })
+                : React.isValidElement(stat.icon)
+                  ? React.cloneElement(stat.icon as React.ReactElement<any>, { color: "#222", size: 28 })
+                  : stat.icon}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // ...existing code for other stat cards...
   return (
     <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md mb-2 sm:mb-0 border border-gray-100 flex items-center min-h-[90px]">
       <div className="flex-1 flex flex-col justify-center">
@@ -606,7 +706,6 @@ const StatCard = ({ stat }: { stat: StatCard }) => {
       <div className="flex-shrink-0 flex items-center justify-center ml-4">
         <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-[#e4ded5] to-[#9dbe8d]/30 shadow-inner border border-gray-200">
           <span className="text-primary-600 flex items-center justify-center" style={{ lineHeight: 0 }}>
-            {/* Ensure icon is always 28px */}
             {typeof stat.icon === "function"
               ? React.createElement(stat.icon, { size: 28, color: "#222" })
               : React.isValidElement(stat.icon)

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense, useMemo, useCallback } from "react";
 import { FiMapPin, FiPhone, FiScissors, FiStar, FiFilter, FiX } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -17,28 +17,80 @@ const COLORS = {
   border: "#E4DED5"
 };
 
-// Replace with your actual fetch function or API endpoint
-const fetchSalons = async () => {
-  const res = await fetch("/api/salons"); // Adjust endpoint as needed
-  if (!res.ok) throw new Error("Failed to fetch salons");
-  return res.json();
+// Cache for salon and service data
+const dataCache = {
+  salons: null as any,
+  services: null as any,
+  ratings: {} as { [uid: string]: number },
+  lastFetch: 0,
+  cacheDuration: 5 * 60 * 1000 // 5 minutes
 };
 
-function slugify(name: string | undefined) {
-  if (!name || typeof name !== "string") return "";
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-}
+// Optimized fetch function with caching
+const fetchSalonsOptimized = async () => {
+  const now = Date.now();
+  if (dataCache.salons && (now - dataCache.lastFetch) < dataCache.cacheDuration) {
+    return dataCache.salons;
+  }
+  
+  const res = await fetch("/api/salons");
+  if (!res.ok) throw new Error("Failed to fetch salons");
+  const data = await res.json();
+  
+  dataCache.salons = data;
+  dataCache.lastFetch = now;
+  return data;
+};
 
-const fetchServices = async (uids: string[]) => {
+const fetchServicesOptimized = async (uids: string[]) => {
+  const now = Date.now();
+  if (dataCache.services && (now - dataCache.lastFetch) < dataCache.cacheDuration) {
+    return dataCache.services;
+  }
+  
   const url = `/api/services?${uids.map(uid => `uids=${encodeURIComponent(uid)}`).join('&')}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("Failed to fetch services");
   const data = await res.json();
-  return data.services || [];
+  
+  dataCache.services = data.services || [];
+  return dataCache.services;
 };
+
+// Skeleton loader component
+const SalonCardSkeleton = () => (
+  <div className="bg-white rounded-lg shadow-sm border border-[#E4DED5] flex flex-col overflow-hidden animate-pulse">
+    <div className="w-full h-40 sm:h-48 bg-gray-200"></div>
+    <div className="p-4 sm:p-6 flex-1 flex flex-col">
+      <div className="h-6 bg-gray-200 rounded mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
+      <div className="flex items-center mb-2">
+        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+      </div>
+      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+      <div className="h-4 bg-gray-200 rounded mb-2 w-5/6"></div>
+      <div className="mt-auto space-y-1">
+        <div className="h-3 bg-gray-200 rounded w-4/5"></div>
+        <div className="h-3 bg-gray-200 rounded w-3/5"></div>
+      </div>
+      <div className="mt-4">
+        <div className="h-10 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Simple slugify function
+function slugify(str: string): string {
+  return str
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036F]/g, "") // Remove accents
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
   const [salons, setSalons] = useState<any[]>([]);
@@ -46,7 +98,7 @@ function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [filterText, setFilterText] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "price-low" | "price-high">("name");
+  const [sortBy, setSortBy] = useState<"name" | "price-low" | "price-high" | "rating">("name");
   const [ratings, setRatings] = useState<{ [uid: string]: number }>({});
   const [filterRating, setFilterRating] = useState<number>(0);
   const [filterService, setFilterService] = useState<string>("");
@@ -55,23 +107,55 @@ function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const router = useRouter();
 
+  // Memoized user data
+  const userData = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const userStr = window.localStorage.getItem("bookme_user");
+      if (userStr) {
+        try {
+          return JSON.parse(userStr);
+        } catch {
+          return null;
+        }
+      }
+    }
+    return null;
+  }, []);
+
+  useEffect(() => {
+    setUser(userData);
+  }, [userData]);
+
+  // Optimized data fetching
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const salonData = await fetchSalons();
+        setLoading(true);
+        
+        // Start both requests in parallel
+        const [salonData, cachedRatings] = await Promise.all([
+          fetchSalonsOptimized(),
+          Promise.resolve(dataCache.ratings)
+        ]);
+        
         const salonsArray = Array.isArray(salonData.salons) ? salonData.salons : [];
-        // Only use salons with a valid uid
         const uids = salonsArray
           .filter((salon: any) => typeof salon.uid === "string" && salon.uid.length > 0)
           .map((salon: any) => salon.uid);
 
-        const services = await fetchServices(uids);
+        // Fetch services and ratings in parallel
+        const [services, ratingsData] = await Promise.all([
+          fetchServicesOptimized(uids),
+          fetchRatingsOptimized(uids, cachedRatings)
+        ]);
 
         setSalons(salonsArray);
         setServices(services);
+        setRatings(ratingsData);
       } catch (error) {
         setSalons([]);
         setServices([]);
+        setRatings({});
       } finally {
         setLoading(false);
       }
@@ -80,42 +164,33 @@ function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const userStr = window.localStorage.getItem("bookme_user");
-      if (userStr) {
-        try {
-          setUser(JSON.parse(userStr));
-        } catch {
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    }
-  }, []);
+  // Optimized ratings fetch
+  const fetchRatingsOptimized = useCallback(async (uids: string[], cachedRatings: { [uid: string]: number }) => {
+    const ratingsObj = { ...cachedRatings };
+    const uncachedUids = uids.filter(uid => !(uid in ratingsObj));
+    
+    if (uncachedUids.length === 0) return ratingsObj;
 
-  // Fetch ratings for salons
-  useEffect(() => {
-    async function fetchRatings() {
-      const ratingsObj: { [uid: string]: number } = {};
-      await Promise.all(
-        salons.map(async salon => {
-          if (salon.uid) {
-            try {
-              const res = await fetch(`/api/reviews?salonUid=${encodeURIComponent(salon.uid)}`);
-              const data = await res.json();
-              ratingsObj[salon.uid] = typeof data.averageRating === "number" ? data.averageRating : 0;
-            } catch {
-              ratingsObj[salon.uid] = 0;
-            }
-          }
-        })
-      );
-      setRatings(ratingsObj);
-    }
-    if (salons.length > 0) fetchRatings();
-  }, [salons]);
+    // Batch fetch ratings for uncached UIDs
+    const ratingPromises = uncachedUids.map(async uid => {
+      try {
+        const res = await fetch(`/api/reviews?salonUid=${encodeURIComponent(uid)}`);
+        const data = await res.json();
+        return { uid, rating: typeof data.averageRating === "number" ? data.averageRating : 0 };
+      } catch {
+        return { uid, rating: 0 };
+      }
+    });
+
+    const ratingResults = await Promise.all(ratingPromises);
+    ratingResults.forEach(({ uid, rating }) => {
+      ratingsObj[uid] = rating;
+    });
+
+    // Update cache
+    dataCache.ratings = ratingsObj;
+    return ratingsObj;
+  }, []);
 
   // Pre-fill search bar from URL params on first load only
   useEffect(() => {
@@ -166,124 +241,141 @@ function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
     return true;
   };
 
-  // Helper to get price range for a salon by uid
-  function getPriceRange(uid: string) {
-    const salonServices = Array.isArray(services) ? services.filter((s) => s.uid === uid) : [];
-    if (salonServices.length === 0) return null;
+  // Memoized price range calculation
+  const getPriceRangeMemo = useMemo(() => {
+    const priceCache: { [uid: string]: string | null } = {};
+    
+    return (uid: string) => {
+      if (priceCache[uid] !== undefined) return priceCache[uid];
+      
+      const salonServices = Array.isArray(services) ? services.filter((s) => s.uid === uid) : [];
+      if (salonServices.length === 0) {
+        priceCache[uid] = null;
+        return null;
+      }
 
-    const allPrices: number[] = [];
-    for (const service of salonServices) {
-      // Handle new durationPrices structure
-      if (service.durationPrices && Array.isArray(service.durationPrices)) {
-        service.durationPrices.forEach((dp: any) => {
-          if (dp.price && !isNaN(Number(dp.price))) {
-            allPrices.push(Number(dp.price));
-          }
-        });
+      const allPrices: number[] = [];
+      for (const service of salonServices) {
+        // Handle new durationPrices structure
+        if (service.durationPrices && Array.isArray(service.durationPrices)) {
+          service.durationPrices.forEach((dp: any) => {
+            if (dp.price && !isNaN(Number(dp.price))) {
+              allPrices.push(Number(dp.price));
+            }
+          });
+        }
+        // Fallback for old structure
+        else if (service.price !== undefined && service.price !== null && !isNaN(Number(service.price))) {
+          allPrices.push(Number(service.price));
+        }
+        else if (
+          service.pricePerBlock !== undefined && service.pricePerBlock !== null && !isNaN(Number(service.pricePerBlock)) &&
+          service.priceBlockSize !== undefined && service.priceBlockSize !== null && !isNaN(Number(service.priceBlockSize)) &&
+          service.duration !== undefined && service.duration !== null && !isNaN(Number(service.duration))
+        ) {
+          const blocks = Math.ceil(Number(service.duration) / Number(service.priceBlockSize));
+          const totalPrice = blocks * Number(service.pricePerBlock);
+          allPrices.push(totalPrice);
+        }
+        else if (service.pricePerBlock !== undefined && service.pricePerBlock !== null && !isNaN(Number(service.pricePerBlock))) {
+          allPrices.push(Number(service.pricePerBlock));
+        }
       }
-      // Fallback for old structure
-      else if (service.price !== undefined && service.price !== null && !isNaN(Number(service.price))) {
-        allPrices.push(Number(service.price));
+
+      if (allPrices.length === 0) {
+        priceCache[uid] = null;
+        return null;
       }
-      else if (
-        service.pricePerBlock !== undefined && service.pricePerBlock !== null && !isNaN(Number(service.pricePerBlock)) &&
-        service.priceBlockSize !== undefined && service.priceBlockSize !== null && !isNaN(Number(service.priceBlockSize)) &&
-        service.duration !== undefined && service.duration !== null && !isNaN(Number(service.duration))
-      ) {
-        const blocks = Math.ceil(Number(service.duration) / Number(service.priceBlockSize));
-        const totalPrice = blocks * Number(service.pricePerBlock);
-        allPrices.push(totalPrice);
-      }
-      else if (service.pricePerBlock !== undefined && service.pricePerBlock !== null && !isNaN(Number(service.pricePerBlock))) {
-        allPrices.push(Number(service.pricePerBlock));
-      }
+
+      const minPrice = Math.min(...allPrices);
+      const maxPrice = Math.max(...allPrices);
+      const result = minPrice === maxPrice ? `€${minPrice}` : `€${minPrice} - €${maxPrice}`;
+      
+      priceCache[uid] = result;
+      return result;
+    };
+  }, [services]);
+
+  // Memoized filtered and sorted salons
+  const filteredAndSortedSalons = useMemo(() => {
+    let filtered = salons
+      .filter(salon => {
+        if (filterText === "") return true;
+        
+        const searchTerm = filterText.toLowerCase();
+        
+        // First priority: salon name match
+        if (salon.name?.toLowerCase().includes(searchTerm)) {
+          return true;
+        }
+        
+        // Second priority: service name match
+        const hasMatchingService = services.some(s => 
+          s.uid === salon.uid && s.name?.toLowerCase().includes(searchTerm)
+        );
+        
+        return hasMatchingService;
+      })
+      .filter(salon =>
+        filterRating === 0 || (ratings[salon.uid] ?? 0) >= filterRating
+      )
+      .filter(salon => {
+        if (!filterService) return true;
+        // Check if this is from homepage "treatment" search (match by service name)
+        const treatmentParam = searchParams?.get("treatment");
+        if (treatmentParam && filterService === treatmentParam) {
+          return services.some(s => s.uid === salon.uid && s.name?.toLowerCase().includes(filterService.toLowerCase()));
+        }
+        // Otherwise match by serviceType (for dropdown filter)
+        return services.some(s => s.uid === salon.uid && s.serviceType === filterService);
+      })
+      .filter(salon => {
+        // Check if salon is open on the selected date
+        return isSalonOpenAt(salon, filterDate);
+      });
+
+    // Apply sorting
+    if (sortBy === "name") {
+      filtered = filtered.sort((a, b) => {
+        const aName = typeof a.name === "string" ? a.name : "";
+        const bName = typeof b.name === "string" ? b.name : "";
+        return aName.localeCompare(bName);
+      });
+    } else if (sortBy === "price-low" || sortBy === "price-high") {
+      filtered = filtered.slice().sort((a, b) => {
+        const aPrices = (() => {
+          const pr = getPriceRangeMemo(a.uid);
+          if (!pr) return Infinity;
+          const nums = pr.replace(/[^\d\-]/g, "").split("-").map(Number);
+          return nums.length === 2 ? nums[0] : nums[0];
+        })();
+        const bPrices = (() => {
+          const pr = getPriceRangeMemo(b.uid);
+          if (!pr) return Infinity;
+          const nums = pr.replace(/[^\d\-]/g, "").split("-").map(Number);
+          return nums.length === 2 ? nums[0] : nums[0];
+        })();
+        return sortBy === "price-low" ? aPrices - bPrices : bPrices - aPrices;
+      });
+    } else if (sortBy === "rating") {
+      filtered = filtered.slice().sort((a, b) => {
+        const aRating = ratings[a.uid] ?? 0;
+        const bRating = ratings[b.uid] ?? 0;
+        return bRating - aRating; // Descending order
+      });
     }
 
-    if (allPrices.length === 0) return null;
+    return filtered;
+  }, [salons, services, ratings, filterText, filterRating, filterService, filterDate, sortBy, searchParams, getPriceRangeMemo]);
 
-    const minPrice = Math.min(...allPrices);
-    const maxPrice = Math.max(...allPrices);
-
-    if (minPrice === maxPrice) return `€${minPrice}`;
-    return `€${minPrice} - €${maxPrice}`;
-  }
-
-  // Filter and sort salons
-  let filteredSalons = salons
-    .filter(salon => {
-      if (filterText === "") return true;
-      
-      const searchTerm = filterText.toLowerCase();
-      
-      // First priority: salon name match
-      if (salon.name?.toLowerCase().includes(searchTerm)) {
-        return true;
-      }
-      
-      // Second priority: service name match
-      const hasMatchingService = services.some(s => 
-        s.uid === salon.uid && s.name?.toLowerCase().includes(searchTerm)
-      );
-      
-      return hasMatchingService;
-    })
-    .filter(salon =>
-      filterRating === 0 || (ratings[salon.uid] ?? 0) >= filterRating
-    )
-    .filter(salon => {
-      if (!filterService) return true;
-      // Check if this is from homepage "treatment" search (match by service name)
-      const treatmentParam = searchParams?.get("treatment");
-      if (treatmentParam && filterService === treatmentParam) {
-        return services.some(s => s.uid === salon.uid && s.name?.toLowerCase().includes(filterService.toLowerCase()));
-      }
-      // Otherwise match by serviceType (for dropdown filter)
-      return services.some(s => s.uid === salon.uid && s.serviceType === filterService);
-    })
-    .filter(salon => {
-      // Check if salon is open on the selected date
-      return isSalonOpenAt(salon, filterDate);
-    });
-
-  // Sorting logic - with priority for salon name matches when searching
-  if (sortBy === "name") {
-    filteredSalons = filteredSalons.sort((a, b) => {
-      const aName = typeof a.name === "string" ? a.name : "";
-      const bName = typeof b.name === "string" ? b.name : "";
-      return aName.localeCompare(bName);
-    });
-  } else if (sortBy === "price-low" || sortBy === "price-high") {
-    filteredSalons = filteredSalons.slice().sort((a, b) => {
-      const aPrices = (() => {
-        const pr = getPriceRange(a.uid);
-        if (!pr) return Infinity;
-        const nums = pr.replace(/[^\d\-]/g, "").split("-").map(Number);
-        return nums.length === 2 ? nums[0] : nums[0];
-      })();
-      const bPrices = (() => {
-        const pr = getPriceRange(b.uid);
-        if (!pr) return Infinity;
-        const nums = pr.replace(/[^\d\-]/g, "").split("-").map(Number);
-        return nums.length === 2 ? nums[0] : nums[0];
-      })();
-      return sortBy === "price-low" ? aPrices - bPrices : bPrices - aPrices;
-    });
-  } else if (sortBy === "rating") {
-    filteredSalons = filteredSalons.slice().sort((a, b) => {
-      const aRating = ratings[a.uid] ?? 0;
-      const bRating = ratings[b.uid] ?? 0;
-      return bRating - aRating; // Descending order
-    });
-  }
-
-  // Use serviceType for filter dropdown
-  const allServiceTypes = Array.from(
-    new Set(Array.isArray(services) ? services.map(s => s.serviceType).filter(Boolean) : [])
+  // Memoized service types
+  const allServiceTypes = useMemo(() => 
+    Array.from(new Set(Array.isArray(services) ? services.map(s => s.serviceType).filter(Boolean) : [])),
+    [services]
   );
 
   return (
     <main className="min-h-screen bg-gray-50 font-sans p-0 flex flex-col">
-      {/* Pass user to Navbar */}
       <Navbar user={user} />
       <div className="flex-1">
         <div className="max-w-6xl mx-auto py-4 sm:py-8 px-2 sm:px-6 lg:px-8">
@@ -438,75 +530,84 @@ function SalonsContent({ searchParams }: { searchParams: URLSearchParams }) {
           <p className="text-gray-600 mb-6 sm:mb-8 text-center text-sm sm:text-base px-2">
             Durchstöbern Sie alle Salons und finden Sie Ihren nächsten Termin.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {filteredSalons
-              .filter(salon => typeof salon.name === "string" && salon.name.length > 0)
-              .map(salon => {
-                const slug = slugify(salon.name);
-                return (
-                  <div
-                    key={salon._id}
-                    className="bg-white rounded-lg shadow-sm border border-[#E4DED5] flex flex-col overflow-hidden hover:shadow-md transform hover:-translate-y-1 transition-all duration-200"
-                  >
-                    {salon.imageUrls && salon.imageUrls.length > 0 && (
-                      <img
-                        src={salon.imageUrls[0]}
-                        alt={salon.name}
-                        className="w-full h-40 sm:h-48 object-cover"
-                        style={{ background: COLORS.accent }}
-                      />
-                    )}
-                    <div className="p-4 sm:p-6 flex-1 flex flex-col">
-                      <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 flex items-start break-words">
-                        <FiScissors className="mr-2 text-[#5C6F68] flex-shrink-0 mt-1" /> 
-                        <span className="break-words">{salon.name}</span>
-                      </h2>
-                      <p className="text-[#5C6F68] font-medium mb-2 text-sm sm:text-base">
-                        {getPriceRange(salon.uid) ? (
-                          <>Preisbereich: {getPriceRange(salon.uid)}</>
-                        ) : (
-                          <>Keine Preisinformation</>
-                        )}
-                      </p>
-                      <div className="flex items-center mb-2">
-                        {[...Array(5)].map((_, i) => (
-                          <FiStar
-                            key={i}
-                            className={`w-4 h-4 sm:w-5 sm:h-5 ${i < Math.round(ratings[salon.uid] || 0) ? "text-[#9DBE8D] fill-current" : "text-gray-300"}`}
-                          />
-                        ))}
-                        <span className="ml-2 text-[#1F1F1F] font-medium text-sm sm:text-base">
-                          {typeof ratings[salon.uid] === "number" ? ratings[salon.uid].toFixed(1) : "0.0"}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 mb-2 text-sm sm:text-base line-clamp-3 flex-grow">{salon.description}</p>
-                      <div className="mt-auto space-y-1">
-                        <div className="flex items-start text-gray-600 text-xs sm:text-sm">
-                          <FiMapPin className="mr-1 text-[#9DBE8D] flex-shrink-0 mt-0.5" />
-                          <span className="break-words">{salon.location}</span>
+          
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <SalonCardSkeleton key={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+              {filteredAndSortedSalons
+                .filter(salon => typeof salon.name === "string" && salon.name.length > 0)
+                .map(salon => {
+                  const slug = slugify(salon.name);
+                  return (
+                    <div
+                      key={salon._id}
+                      className="bg-white rounded-lg shadow-sm border border-[#E4DED5] flex flex-col overflow-hidden hover:shadow-md transform hover:-translate-y-1 transition-all duration-200"
+                    >
+                      {salon.imageUrls && salon.imageUrls.length > 0 && (
+                        <img
+                          src={salon.imageUrls[0]}
+                          alt={salon.name}
+                          className="w-full h-40 sm:h-48 object-cover"
+                          style={{ background: COLORS.accent }}
+                          loading="lazy"
+                        />
+                      )}
+                      <div className="p-4 sm:p-6 flex-1 flex flex-col">
+                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 flex items-start break-words">
+                          <FiScissors className="mr-2 text-[#5C6F68] flex-shrink-0 mt-1" /> 
+                          <span className="break-words">{salon.name}</span>
+                        </h2>
+                        <p className="text-[#5C6F68] font-medium mb-2 text-sm sm:text-base">
+                          {getPriceRangeMemo(salon.uid) ? (
+                            <>Preisbereich: {getPriceRangeMemo(salon.uid)}</>
+                          ) : (
+                            <>Keine Preisinformation</>
+                          )}
+                        </p>
+                        <div className="flex items-center mb-2">
+                          {[...Array(5)].map((_, i) => (
+                            <FiStar
+                              key={i}
+                              className={`w-4 h-4 sm:w-5 sm:h-5 ${i < Math.round(ratings[salon.uid] || 0) ? "text-[#9DBE8D] fill-current" : "text-gray-300"}`}
+                            />
+                          ))}
+                          <span className="ml-2 text-[#1F1F1F] font-medium text-sm sm:text-base">
+                            {typeof ratings[salon.uid] === "number" ? ratings[salon.uid].toFixed(1) : "0.0"}
+                          </span>
                         </div>
-                        <div className="flex items-center text-gray-600 text-xs sm:text-sm">
-                          <FiPhone className="mr-1 text-[#5C6F68] flex-shrink-0" />
-                          <span className="break-all">{salon.contact}</span>
+                        <p className="text-gray-700 mb-2 text-sm sm:text-base line-clamp-3 flex-grow">{salon.description}</p>
+                        <div className="mt-auto space-y-1">
+                          <div className="flex items-start text-gray-600 text-xs sm:text-sm">
+                            <FiMapPin className="mr-1 text-[#9DBE8D] flex-shrink-0 mt-0.5" />
+                            <span className="break-words">{salon.location}</span>
+                          </div>
+                          <div className="flex items-center text-gray-600 text-xs sm:text-sm">
+                            <FiPhone className="mr-1 text-[#5C6F68] flex-shrink-0" />
+                            <span className="break-all">{salon.contact}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-4">
-                        <button
-                          className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2.5 px-4 rounded-md w-full transition-colors duration-200 text-sm sm:text-base active:bg-[#3d4a44]"
-                          onClick={() => router.push(`/salon/${slug}`)}
-                        >
-                          Jetzt buchen
-                        </button>
+                        <div className="mt-4">
+                          <button
+                            className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-medium py-2.5 px-4 rounded-md w-full transition-colors duration-200 text-sm sm:text-base active:bg-[#3d4a44]"
+                            onClick={() => router.push(`/salon/${slug}`)}
+                          >
+                            Jetzt buchen
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            }
-          </div>
+                  );
+                })
+              }
+            </div>
+          )}
         </div>
       </div>
-      {/* Footer outside main content for full width */}
       <Footer />
     </main>
   );

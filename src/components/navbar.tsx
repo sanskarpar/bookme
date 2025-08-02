@@ -109,7 +109,7 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
           letterSpacing: -1,
         }}
       >
-        bookme
+        mollytime
       </a>
       
       {/* Desktop Navigation */}

@@ -339,7 +339,7 @@ export default function CustomersPage() {
       "Storniert", 
       "Nicht erschienen",
       "Jemals verpasst",
-      "Bewertung",
+      "Kundenzufriedenheit",
       "Erste Buchung",
       "Letzte Buchung",
       "Gesamt ausgegeben (€)"
@@ -481,19 +481,13 @@ export default function CustomersPage() {
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <h3 className="text-sm font-medium text-gray-600 mb-1">Gesamt Kunden</h3>
               <p className="text-2xl font-bold text-black">{filteredCustomers.length}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-600 mb-1">⭐ 4+ Sterne</h3>
-              <p className="text-2xl font-bold text-green-600">
-                {filteredCustomers.filter(c => c.rating >= 4).length}
-              </p>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-600 mb-1">🚫 Mit No-Shows</h3>
+              <h3 className="text-sm font-medium text-gray-600 mb-1">🚫 No-Shows</h3>
               <p className="text-2xl font-bold text-red-600">
                 {filteredCustomers.filter(c => c.noShowBookings > 0).length}
               </p>
@@ -516,7 +510,7 @@ export default function CustomersPage() {
                       Kunde
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Bewertung
+                      Kundenzufriedenheit
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Buchungen
@@ -631,7 +625,7 @@ export default function CustomersPage() {
                   {/* Customer Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <div className="text-xs text-gray-600">Bewertung</div>
+                      <div className="text-xs text-gray-600">Kundenzufriedenheit</div>
                       <div className="flex items-center gap-1">
                         <span style={{ color: getRatingColor(selectedCustomer.rating) }}>
                           {getRatingStars(selectedCustomer.rating)}

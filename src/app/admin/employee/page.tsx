@@ -810,8 +810,8 @@ export default function EmployeePage() {
             </div>
           )}
         </div>
-        <Footer />
       </main>
+      <Footer />
     </div>
   );
 }

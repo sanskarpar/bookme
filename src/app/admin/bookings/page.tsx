@@ -556,16 +556,16 @@ export default function AdminBookingsPage() {
             {!showHistory && (
               upcomingBookings.length > 0 ? (
                 upcomingBookings.map((booking) => (
-                  <div key={booking._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div className="flex justify-between items-start mb-4">
+                  <div key={booking._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                    <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="text-base font-semibold text-gray-900 flex items-center">
                             <FiUser className="w-4 h-4 mr-2 text-[#5C6F68]" />
                             {booking.customerName}
                           </h3>
                           <span
-                            className="px-3 py-1 rounded-full text-xs font-medium text-white"
+                            className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
                             style={{ backgroundColor: getStatusColor(booking.status) }}
                           >
                             {booking.status === 'confirmed' && 'Bestätigt'}
@@ -576,17 +576,17 @@ export default function AdminBookingsPage() {
                           </span>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-600 mb-2">
                           <div className="flex items-center">
-                            <FiCalendar className="w-4 h-4 mr-2 text-[#5C6F68]" />
+                            <FiCalendar className="w-4 h-4 mr-1 text-[#5C6F68]" />
                             {formatDate(booking.date)}
                           </div>
                           <div className="flex items-center">
-                            <FiClock className="w-4 h-4 mr-2 text-[#5C6F68]" />
+                            <FiClock className="w-4 h-4 mr-1 text-[#5C6F68]" />
                             {booking.time}
                           </div>
                           <div className="flex items-center">
-                            <FiPhone className="w-4 h-4 mr-2 text-[#5C6F68]" />
+                            <FiPhone className="w-4 h-4 mr-1 text-[#5C6F68]" />
                             {booking.customerPhone}
                           </div>
                         </div>
@@ -594,50 +594,49 @@ export default function AdminBookingsPage() {
                     </div>
 
                     {/* Services */}
-                    <div className="border-t border-gray-200 pt-4 mb-4">
-                      <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-                        <FiScissors className="w-4 h-4 mr-2 text-[#9DBE8D]" />
+                    <div className="border-t border-gray-200 pt-2 mb-2">
+                      <h4 className="font-medium text-gray-900 mb-1 flex items-center text-sm">
+                        <FiScissors className="w-4 h-4 mr-1 text-[#9DBE8D]" />
                         Dienstleistungen
                       </h4>
-                      {/* Show services stacked vertically if more than one */}
-                      <div className={booking.services.length > 1 ? "flex flex-col gap-2" : "grid grid-cols-1 md:grid-cols-2 gap-2"}>
+                      <div className={booking.services.length > 1 ? "flex flex-col gap-1" : "grid grid-cols-1 md:grid-cols-2 gap-1"}>
                         {booking.services.map((service, index) => (
-                          <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded">
+                          <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
                             <div>
-                              <span className="font-medium text-gray-900">{service.name}</span>
+                              <span className="font-medium text-gray-900 text-sm">{service.name}</span>
                               <div className="text-xs text-gray-500">
                                 {service.employee} • {service.duration} Minuten
                               </div>
                             </div>
-                            <span className="font-medium text-[#5C6F68]">€{service.price}</span>
+                            <span className="font-medium text-[#5C6F68] text-sm">€{service.price}</span>
                           </div>
                         ))}
                       </div>
-                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
-                        <span className="font-medium text-gray-900">Gesamt</span>
-                        <span className="text-lg font-bold text-[#5C6F68]">€{booking.total}</span>
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                        <span className="font-medium text-gray-900 text-sm">Gesamt</span>
+                        <span className="text-base font-bold text-[#5C6F68]">€{booking.total}</span>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1">
                       {booking.status === 'confirmed' && (
                         <>
                           <button
                             onClick={() => handleBookingAction(booking._id, 'completed')}
-                            className="bg-green-50 text-green-700 hover:bg-green-100 px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                            className="bg-green-50 text-green-700 hover:bg-green-100 px-2 py-0.5 rounded-md text-xs font-medium transition-colors"
                           >
                             Als abgeschlossen markieren
                           </button>
                           <button
                             onClick={() => handleBookingAction(booking._id, 'no-show')}
-                            className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                            className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 px-2 py-0.5 rounded-md text-xs font-medium transition-colors"
                           >
                             Als nicht erschienen markieren
                           </button>
                           <button
                             onClick={() => handleBookingAction(booking._id, 'cancelled')}
-                            className="bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                            className="bg-red-50 text-red-700 hover:bg-red-100 px-2 py-0.5 rounded-md text-xs font-medium transition-colors"
                           >
                             Stornieren
                           </button>
@@ -646,7 +645,7 @@ export default function AdminBookingsPage() {
                       {booking.status !== 'confirmed' && booking.status !== 'completed' && (
                         <button
                           onClick={() => handleBookingAction(booking._id, 'confirmed')}
-                          className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                          className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-0.5 rounded-md text-xs font-medium transition-colors"
                         >
                           Wiederherstellen
                         </button>
@@ -683,23 +682,23 @@ export default function AdminBookingsPage() {
                   <div className="flex justify-end gap-2 mb-2">
                     <button
                       onClick={exportHistoryCSV}
-                      className="bg-[#5C6F68] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#4a5a54] transition"
+                      className="bg-[#5C6F68] text-white px-3 py-1 rounded-md text-xs font-medium hover:bg-[#4a5a54] transition"
                       type="button"
                     >
                       Export als CSV
                     </button>
                   </div>
                   {historyBookings.map((booking) => (
-                    <div key={booking._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                      <div className="flex justify-between items-start mb-4">
+                    <div key={booking._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                      <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                          <div className="flex items-center justify-between mb-1">
+                            <h3 className="text-base font-semibold text-gray-900 flex items-center">
                               <FiUser className="w-4 h-4 mr-2 text-[#5C6F68]" />
                               {booking.customerName}
                             </h3>
                             <span
-                              className="px-3 py-1 rounded-full text-xs font-medium text-white"
+                              className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
                               style={{ backgroundColor: getStatusColor(booking.status) }}
                             >
                               {booking.status === 'confirmed' && 'Bestätigt'}
@@ -710,24 +709,24 @@ export default function AdminBookingsPage() {
                             </span>
                           </div>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-600 mb-2">
                             <div className="flex items-center">
-                              <FiCalendar className="w-4 h-4 mr-2 text-[#5C6F68]" />
+                              <FiCalendar className="w-4 h-4 mr-1 text-[#5C6F68]" />
                               {formatDate(booking.date)}
                             </div>
                             <div className="flex items-center">
-                              <FiClock className="w-4 h-4 mr-2 text-[#5C6F68]" />
+                              <FiClock className="w-4 h-4 mr-1 text-[#5C6F68]" />
                               {booking.time}
                             </div>
                             <div className="flex items-center">
-                              <FiPhone className="w-4 h-4 mr-2 text-[#5C6F68]" />
+                              <FiPhone className="w-4 h-4 mr-1 text-[#5C6F68]" />
                               {booking.customerPhone}
                             </div>
                             {/* Show address if salon allows and address is present */}
                             {salon?.storeCustomerAddress && booking.customerAddress && (
                               <div className="flex items-center md:col-span-3">
-                                <FiMapPin className="w-4 h-4 mr-2 text-[#5C6F68]" />
-                                <span>
+                                <FiMapPin className="w-4 h-4 mr-1 text-[#5C6F68]" />
+                                <span className="text-xs">
                                   {booking.customerAddress.street} {booking.customerAddress.number}, {booking.customerAddress.zip} {booking.customerAddress.country}
                                 </span>
                               </div>
@@ -737,50 +736,49 @@ export default function AdminBookingsPage() {
                       </div>
 
                       {/* Services */}
-                      <div className="border-t border-gray-200 pt-4 mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-                          <FiScissors className="w-4 h-4 mr-2 text-[#9DBE8D]" />
+                      <div className="border-t border-gray-200 pt-2 mb-2">
+                        <h4 className="font-medium text-gray-900 mb-1 flex items-center text-sm">
+                          <FiScissors className="w-4 h-4 mr-1 text-[#9DBE8D]" />
                           Dienstleistungen
                         </h4>
-                        {/* Show services stacked vertically if more than one */}
-                        <div className={booking.services.length > 1 ? "flex flex-col gap-2" : "grid grid-cols-1 md:grid-cols-2 gap-2"}>
+                        <div className={booking.services.length > 1 ? "flex flex-col gap-1" : "grid grid-cols-1 md:grid-cols-2 gap-1"}>
                           {booking.services.map((service, index) => (
-                            <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded">
+                            <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
                               <div>
-                                <span className="font-medium text-gray-900">{service.name}</span>
+                                <span className="font-medium text-gray-900 text-sm">{service.name}</span>
                                 <div className="text-xs text-gray-500">
                                   {service.employee} • {service.duration} Minuten
                                 </div>
                               </div>
-                              <span className="font-medium text-[#5C6F68]">€{service.price}</span>
+                              <span className="font-medium text-[#5C6F68] text-sm">€{service.price}</span>
                             </div>
                           ))}
                         </div>
-                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
-                          <span className="font-medium text-gray-900">Gesamt</span>
-                          <span className="text-lg font-bold text-[#5C6F68]">€{booking.total}</span>
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                          <span className="font-medium text-gray-900 text-sm">Gesamt</span>
+                          <span className="text-base font-bold text-[#5C6F68]">€{booking.total}</span>
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1">
                         {booking.status === 'confirmed' && (
                           <>
                             <button
                               onClick={() => handleBookingAction(booking._id, 'completed')}
-                              className="bg-green-50 text-green-700 hover:bg-green-100 px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                              className="bg-green-50 text-green-700 hover:bg-green-100 px-2 py-0.5 rounded-md text-xs font-medium transition-colors"
                             >
                               Als abgeschlossen markieren
                             </button>
                             <button
                               onClick={() => handleBookingAction(booking._id, 'no-show')}
-                              className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                              className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 px-2 py-0.5 rounded-md text-xs font-medium transition-colors"
                             >
                               Als nicht erschienen markieren
                             </button>
                             <button
                               onClick={() => handleBookingAction(booking._id, 'cancelled')}
-                              className="bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                              className="bg-red-50 text-red-700 hover:bg-red-100 px-2 py-0.5 rounded-md text-xs font-medium transition-colors"
                             >
                               Stornieren
                             </button>
@@ -789,7 +787,7 @@ export default function AdminBookingsPage() {
                         {booking.status !== 'confirmed' && booking.status !== 'completed' && (
                           <button
                             onClick={() => handleBookingAction(booking._id, 'confirmed')}
-                            className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                            className="bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-0.5 rounded-md text-xs font-medium transition-colors"
                           >
                             Wiederherstellen
                           </button>
@@ -840,3 +838,4 @@ const AuthPrompt = () => (
     </div>
   </main>
 );
+  

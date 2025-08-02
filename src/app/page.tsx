@@ -220,7 +220,7 @@ function HeroSection({ onSearch }: { onSearch: (query: { name: string; treatment
               lineHeight: 1.08,
             }}
           >
-            bookme
+            mollytime
           </div>
           <div
             style={{

@@ -274,7 +274,7 @@ export default function Navbar({ user, onLogout, currentPath, viewingSalonUid, s
               letterSpacing: -1,
             }}
           >
-            bookme
+            mollytime
           </a>
           
           {/* Desktop Navigation */}
