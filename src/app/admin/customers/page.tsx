@@ -90,6 +90,7 @@ export default function CustomersPage() {
   const [customerBookings, setCustomerBookings] = useState<Booking[]>([]);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [salon, setSalon] = useState<any>(null);
+  const [customerRatings, setCustomerRatings] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -111,6 +112,7 @@ export default function CustomersPage() {
                 const salonData = await salonRes.json();
                 setSalon(salonData.salon ?? salonData);
                 await fetchCustomers(salonUidParam);
+                await fetchCustomerRatings(salonUidParam); // fetch ratings
               } else {
                 await fetchCustomers(); // fallback to all
               }
@@ -124,6 +126,7 @@ export default function CustomersPage() {
             const data = await res.json();
             setSalon(data.salon ?? data);
             await fetchCustomers(data.salon?.uid);
+            if (data.salon?.uid) await fetchCustomerRatings(data.salon.uid); // fetch ratings
           }
         } catch (err) {
           console.error("Error loading salon:", err);
@@ -244,6 +247,31 @@ export default function CustomersPage() {
     }
   };
 
+  // Fetch reviews and map average rating per customer
+  const fetchCustomerRatings = async (salonUid: string) => {
+    try {
+      const res = await fetch(`/api/reviews?salonUid=${encodeURIComponent(salonUid)}`);
+      if (!res.ok) return setCustomerRatings({});
+      const data = await res.json();
+      const reviews = data.reviews || [];
+      // Map: customerUid/phone -> [ratings...]
+      const ratingMap: Record<string, number[]> = {};
+      reviews.forEach((review: any) => {
+        const key = review.customerUid || review.customerPhone;
+        if (!ratingMap[key]) ratingMap[key] = [];
+        ratingMap[key].push(review.rating);
+      });
+      // Compute average per customer
+      const avgMap: Record<string, number> = {};
+      Object.entries(ratingMap).forEach(([key, arr]) => {
+        avgMap[key] = arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : 0;
+      });
+      setCustomerRatings(avgMap);
+    } catch {
+      setCustomerRatings({});
+    }
+  };
+
   // Filter and sort customers
   useEffect(() => {
     let filtered = customers.filter(customer => {
@@ -284,7 +312,8 @@ export default function CustomersPage() {
   }, [customers, searchTerm, sortBy, sortOrder]);
 
   const getRatingStars = (rating: number) => {
-    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+    const rounded = Math.round(rating);
+    return '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
   };
 
   const getRatingColor = (rating: number) => {
@@ -510,7 +539,7 @@ export default function CustomersPage() {
                       Kunde
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Kundenzufriedenheit
+                      Durchschnittliche Bewertung
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Buchungen
@@ -527,64 +556,67 @@ export default function CustomersPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredCustomers.map((customer, index) => (
-                    <tr 
-                      key={customer.uid} 
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleCustomerClick(customer)}
-                    >
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-black">{customer.name}</div>
-                          <div className="text-sm text-gray-500">{customer.phone}</div>
-                          {customer.email && (
-                            <div className="text-xs text-gray-400">{customer.email}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span style={{ color: getRatingColor(customer.rating) }}>
-                            {getRatingStars(customer.rating)}
-                          </span>
-                          <span className="text-sm font-medium text-black">
-                            {customer.rating}/5
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="text-sm text-black">{customer.totalBookings} gesamt</div>
-                        <div className="text-xs text-gray-500">
-                          {customer.completedBookings} abgeschlossen
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          {customer.noShowBookings > 0 && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              {customer.noShowBookings} No-Shows
+                  {filteredCustomers.map((customer, index) => {
+                    const avgRating = customerRatings[customer.uid] ?? 0;
+                    return (
+                      <tr 
+                        key={customer.uid} 
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleCustomerClick(customer)}
+                      >
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-black">{customer.name}</div>
+                            <div className="text-sm text-gray-500">{customer.phone}</div>
+                            {customer.email && (
+                              <div className="text-xs text-gray-400">{customer.email}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span style={{ color: getRatingColor(avgRating) }}>
+                              {getRatingStars(avgRating)}
                             </span>
-                          )}
-                          {customer.cancelledBookings > 0 && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              {customer.cancelledBookings} Storniert
+                            <span className="text-sm font-medium text-black">
+                              {avgRating > 0 ? `${avgRating}/5` : "-"}
                             </span>
-                          )}
-                          {!customer.hasEverMissed && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Zuverlässig
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-black">
-                        €{customer.totalSpent.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {customer.lastBooking ? new Date(customer.lastBooking).toLocaleDateString('de-DE') : '-'}
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm text-black">{customer.totalBookings} gesamt</div>
+                          <div className="text-xs text-gray-500">
+                            {customer.completedBookings} abgeschlossen
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            {customer.noShowBookings > 0 && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                {customer.noShowBookings} No-Shows
+                              </span>
+                            )}
+                            {customer.cancelledBookings > 0 && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                {customer.cancelledBookings} Storniert
+                              </span>
+                            )}
+                            {!customer.hasEverMissed && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Zuverlässig
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-black">
+                          €{customer.totalSpent.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {customer.lastBooking ? new Date(customer.lastBooking).toLocaleDateString('de-DE') : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -625,12 +657,16 @@ export default function CustomersPage() {
                   {/* Customer Stats */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-gray-50 p-3 rounded-lg">
-                      <div className="text-xs text-gray-600">Kundenzufriedenheit</div>
+                      <div className="text-xs text-gray-600">Durchschnittliche Bewertung</div>
                       <div className="flex items-center gap-1">
-                        <span style={{ color: getRatingColor(selectedCustomer.rating) }}>
-                          {getRatingStars(selectedCustomer.rating)}
+                        <span style={{ color: getRatingColor(customerRatings[selectedCustomer.uid] ?? 0) }}>
+                          {getRatingStars(customerRatings[selectedCustomer.uid] ?? 0)}
                         </span>
-                        <span className="font-bold">{selectedCustomer.rating}/5</span>
+                        <span className="font-bold">
+                          {customerRatings[selectedCustomer.uid] > 0
+                            ? `${customerRatings[selectedCustomer.uid]}/5`
+                            : "-"}
+                        </span>
                       </div>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg">

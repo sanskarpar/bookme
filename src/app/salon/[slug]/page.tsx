@@ -950,7 +950,8 @@ export default function SalonPage() {
 
         {/* Cart summary fixed popup */}
         {cartServices.length > 0 && (
-          <div className="fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 bg-[#E4DED5] border border-[#9DBE8D] shadow-lg rounded-2xl px-4 sm:px-10 py-4 sm:py-6 w-full max-w-md sm:max-w-xl flex flex-col items-center">
+          <div className="fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 bg-[#E4DED5] border border-[#9DBE8D] shadow-lg rounded-2xl px-6 sm:px-10 py-4 sm:py-6 w-[calc(100%-16px)] sm:max-w-xl flex flex-col items-center"
+               style={{ maxWidth: 'calc(100% - 16px)' }}>
             <div className="w-full flex items-center justify-between">
               <div className="text-base sm:text-lg font-semibold text-[#1F1F1F]">
                 Gesamt: €{cartServices.reduce((sum, s) => sum + (s.price || 0), 0)}
@@ -970,7 +971,7 @@ export default function SalonPage() {
             </div>
             {/* Dropdown list */}
             {showCartDropdown && (
-              <ul className="w-full mb-2 bg-white rounded-lg border border-[#E4DED5] shadow p-1 sm:p-2">
+              <ul className="w-full mb-2 bg-white rounded-lg border border-[#E4DED5] shadow p-2 sm:p-2 max-h-[200px] overflow-y-auto">
                 {cartServices.map(s => (
                   <li key={`${s._id}-${s.selectedOption?.duration}`} className="flex justify-between items-center py-1 text-[#1F1F1F] text-xs sm:text-sm">
                     <span>
@@ -997,7 +998,7 @@ export default function SalonPage() {
               </ul>
             )}
             <button
-              className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-semibold py-1 sm:py-2 px-4 sm:px-6 rounded-lg transition-all duration-200 w-full text-sm sm:text-base"
+              className="bg-[#5C6F68] hover:bg-[#4a5a54] text-white font-semibold py-2 sm:py-2 px-4 sm:px-6 rounded-lg transition-all duration-200 w-full text-sm sm:text-base"
               onClick={proceedToBooking}
             >
               Weiter zur Buchung ({cartServices.length})

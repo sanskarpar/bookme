@@ -141,26 +141,10 @@ export default function CalendarPage() {
   // Plan-based calendar access check (blurred sneak peek modal)
   useEffect(() => {
     if (salon && !isSystemAdmin && plans.length > 0) {
-      // Find plans that have calendar access
-      const calendarPlans = plans.filter(plan => 
-        plan.features && plan.features.some((feature: string) => 
-          feature.toLowerCase().includes('kalender') || 
-          feature.toLowerCase().includes('calendar') ||
-          feature.toLowerCase().includes('terminplanung')
-        )
-      );
-      
-      // Also include founders and custom plans by default
-      const foundersOrCustom = plans.some(plan => 
-        (plan.name.toLowerCase() === 'founders' || plan.id === 'founders' ||
-         plan.name.toLowerCase() === 'custom' || plan.id === 'custom') &&
-        (salon.plan === plan.name.toLowerCase() || salon.plan === plan.id)
-      );
-      
-      const hasCalendarAccess = calendarPlans.some(plan => 
-        salon.plan === plan.name.toLowerCase() || salon.plan === plan.id
-      ) || foundersOrCustom;
-      
+      // Only block calendar for startup plan
+      const blockedPlans = ["startup"];
+      const salonPlan = (salon.plan || "").toLowerCase();
+      const hasCalendarAccess = !blockedPlans.includes(salonPlan);
       setShowPlanModal(!hasCalendarAccess);
     } else {
       setShowPlanModal(false);
@@ -205,7 +189,7 @@ export default function CalendarPage() {
         <div className="max-w-7xl mx-auto py-4 px-2 sm:py-6 sm:px-4 lg:px-8">
           <div className="mb-4 sm:mb-6 lg:mb-8 text-center">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
-              Kalendar Übersicht
+              Kalender Übersicht
               {viewingSalonUid && isSystemAdmin && (
                 <span className="text-sm sm:text-lg text-gray-600 block mt-1">(System-Ansicht)</span>
               )}

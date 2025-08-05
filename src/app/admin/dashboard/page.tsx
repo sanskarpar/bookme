@@ -95,10 +95,11 @@ export default function SalonDashboard() {
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const [viewingSalonUid, setViewingSalonUid] = useState<string | null>(null);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
+  // Use German time for current time
   const [currentTime, setCurrentTime] = useState<string>(() => {
     const now = new Date();
-    // Only show hours and minutes
-    return now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    const berlinNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+    return berlinNow.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   });
 
   // Get current user and fetch salon info and role
@@ -188,8 +189,8 @@ export default function SalonDashboard() {
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
-      // Only show hours and minutes
-      setCurrentTime(now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+      const berlinNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+      setCurrentTime(berlinNow.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -201,10 +202,14 @@ export default function SalonDashboard() {
       // Fetch all bookings for this salon
       const res = await fetch(`/api/bookings?salonUid=${encodeURIComponent(salonUid)}`);
       const data = await res.json();
-      
-      console.log('All bookings response:', data);
-
       if (data.bookings) {
+        // Use German time for all date logic
+        const berlinNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+        const berlinYear = berlinNow.getFullYear();
+        const berlinMonth = berlinNow.getMonth() + 1;
+        const berlinDay = berlinNow.getDate();
+        const todayStrBerlin = `${berlinYear}-${String(berlinMonth).padStart(2, '0')}-${String(berlinDay).padStart(2, '0')}`;
+
         // Transform all bookings for calendar
         const allCalendarBookings = data.bookings.map((booking: any) => {
           const startTime = booking.time;
@@ -214,8 +219,6 @@ export default function SalonDashboard() {
           const endHours = Math.floor(endMinutes / 60);
           const endMins = endMinutes % 60;
           const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-
-          // Get unique employee names for this booking
           const employeeNames = Array.from(
             new Set(
               (booking.services || [])
@@ -223,7 +226,6 @@ export default function SalonDashboard() {
                 .filter(Boolean)
             )
           ).join(', ');
-
           return {
             id: booking._id,
             time: startTime,
@@ -233,22 +235,14 @@ export default function SalonDashboard() {
             customer: booking.customerName,
             status: booking.status === 'confirmed' ? 'upcoming' : booking.status,
             date: booking.date,
-            employee: employeeNames // add employee field
+            employee: employeeNames
           };
         });
-
         setCalendarBookings(allCalendarBookings);
-
-        // Filter for today's bookings for the table
-        const todayBookingsRaw = data.bookings.filter((b: any) => {
-          const matches = String(b.date) === String(date);
-          return matches;
-        });
-
+        // Filter for today's bookings for the table (in German time)
+        const todayBookingsRaw = data.bookings.filter((b: any) => String(b.date) === todayStrBerlin);
         // Only show upcoming bookings (whose end time is in the future)
-        const now = new Date();
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
+        const nowMinutes = berlinNow.getHours() * 60 + berlinNow.getMinutes();
         const transformedBookings = todayBookingsRaw.map((booking: any) => {
           const startTime = booking.time;
           const duration = booking.services.reduce((total: number, service: any) => total + (service.duration || 30), 0);
@@ -257,7 +251,6 @@ export default function SalonDashboard() {
           const endHours = Math.floor(endMinutes / 60);
           const endMins = endMinutes % 60;
           const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
-
           const employeeNames = Array.from(
             new Set(
               (booking.services || [])
@@ -265,7 +258,6 @@ export default function SalonDashboard() {
                 .filter(Boolean)
             )
           ).join(', ');
-
           return {
             id: booking._id,
             time: startTime,
@@ -274,17 +266,15 @@ export default function SalonDashboard() {
             service: booking.services.map((s: any) => s.name).join(', '),
             customer: booking.customerName,
             status: booking.status === 'confirmed' ? 'upcoming' : booking.status,
-            employee: employeeNames // add employee field
+            employee: employeeNames
           };
         })
-        // Only show bookings whose end time is in the future and status is 'upcoming'
         .filter((booking: any) => {
           if (booking.status !== 'upcoming') return false;
           const [endHour, endMin] = booking.endTime.split(':').map(Number);
           const bookingEndMinutes = endHour * 60 + endMin;
           return bookingEndMinutes > nowMinutes;
         });
-
         transformedBookings.sort((a: any, b: any) => a.time.localeCompare(b.time));
         setTodayBookings(transformedBookings);
       }
@@ -297,9 +287,9 @@ export default function SalonDashboard() {
 
   const fetchStats = async (salonUid: string) => {
     try {
-      // Get today's date
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      // Get today's date in German time
+      const berlinNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+      const todayStr = `${berlinNow.getFullYear()}-${String(berlinNow.getMonth() + 1).padStart(2, '0')}-${String(berlinNow.getDate()).padStart(2, '0')}`;
 
       // Fetch all bookings for this salon
       const res = await fetch(`/api/bookings?salonUid=${encodeURIComponent(salonUid)}`);
@@ -557,7 +547,10 @@ export default function SalonDashboard() {
                   <FiClock className="mr-2" /> Buchungen heute
                 </h2>
                 <span className="text-xs sm:text-sm text-gray-500">
-                  {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {(() => {
+                    const berlinNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+                    return berlinNow.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+                  })()}
                 </span>
               </div>
               <div className="bg-white shadow-sm rounded-lg overflow-hidden">
@@ -807,7 +800,7 @@ const CalendarWidget = ({ bookings, isExpanded, salon }: {
             </p>
             {todayWorkingDay && (
               <p className="text-xs text-blue-600 mt-1">
-                Geöffnet: {todayWorkingDay.start} - {todayWorkingDay.end}
+                Verfügbar: {todayWorkingDay.start} - {todayWorkingDay.end}
               </p>
             )}
           </>

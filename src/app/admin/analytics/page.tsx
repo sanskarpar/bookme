@@ -6,10 +6,11 @@ import Navbar from "../../../components/adminnavbar";
 import Footer from "@/components/footer";
 import { useSearchParams } from "next/navigation";
 import { 
-  FiTrendingUp, FiUsers, FiClock, FiDollarSign, FiCalendar, 
+  FiTrendingUp, FiUsers, FiClock, /*FiDollarSign,*/ FiCalendar, 
   FiScissors, FiStar, FiTarget, FiBarChart, FiPieChart,
   FiActivity, FiUserCheck, FiTrendingDown, FiAlertCircle, FiArrowLeft
 } from "react-icons/fi";
+import { FaEuroSign } from "react-icons/fa";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -162,11 +163,23 @@ function AnalyticsContent() {
 
       // Filter bookings based on time range
       let filteredBookings = bookings;
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeRange));
-      filteredBookings = bookings.filter((booking: any) =>
-        new Date(booking.createdAt) >= cutoffDate
-      );
+      if (timeRange === "today") {
+        const today = new Date();
+        filteredBookings = bookings.filter((booking: any) => {
+          const bookingDate = new Date(booking.createdAt);
+          return (
+            bookingDate.getFullYear() === today.getFullYear() &&
+            bookingDate.getMonth() === today.getMonth() &&
+            bookingDate.getDate() === today.getDate()
+          );
+        });
+      } else {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - parseInt(timeRange));
+        filteredBookings = bookings.filter((booking: any) =>
+          new Date(booking.createdAt) >= cutoffDate
+        );
+      }
 
       const analyticsData = calculateAnalytics(filteredBookings, services, salon, reviews);
       setAnalytics(analyticsData);
@@ -394,26 +407,10 @@ function AnalyticsContent() {
       salon &&
       plans.length > 0
     ) {
-      // Find plans that have analytics access
-      const analyticsPlans = plans.filter(plan => 
-        plan.features && plan.features.some((feature: string) => 
-          feature.toLowerCase().includes('analytics') || 
-          feature.toLowerCase().includes('analyse') ||
-          feature.toLowerCase().includes('statistik')
-        )
-      );
-      
-      // Also include founders and custom plans by default
-      const foundersOrCustom = plans.some(plan => 
-        (plan.name.toLowerCase() === 'founders' || plan.id === 'founders' ||
-         plan.name.toLowerCase() === 'custom' || plan.id === 'custom') &&
-        (salon.plan === plan.name.toLowerCase() || salon.plan === plan.id)
-      );
-      
-      const hasAnalyticsAccess = analyticsPlans.some(plan => 
-        salon.plan === plan.name.toLowerCase() || salon.plan === plan.id
-      ) || foundersOrCustom;
-      
+      // Only allow analytics for unicorn, founders, custom
+      const allowedPlans = ["unicorn", "founders", "custom"];
+      const salonPlan = (salon.plan || "").toLowerCase();
+      const hasAnalyticsAccess = allowedPlans.includes(salonPlan);
       setShowPlanModal(!hasAnalyticsAccess);
     } else {
       setShowPlanModal(false);
@@ -484,6 +481,7 @@ function AnalyticsContent() {
                   className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#5C6F68] focus:border-transparent"
                   style={{ color: "#000" }}
                 >
+                  <option value="today">Heute</option>
                   <option value="7">Letzte 7 Tage</option>
                   <option value="30">Letzte 30 Tage</option>
                   <option value="90">Letzte 3 Monate</option>
@@ -500,28 +498,28 @@ function AnalyticsContent() {
                 <MetricCard
                   title="Gesamteinnahmen"
                   value={`€${analytics.totalRevenue.toFixed(2)}`}
-                  icon={<FiDollarSign size={24} />}
+                  icon={<FaEuroSign size={24} color="#F5F5DC" />} // euro icon
                   trend="up"
                   change="+12%"
                 />
                 <MetricCard
                   title="Gesamtbuchungen"
                   value={analytics.totalBookings.toString()}
-                  icon={<FiCalendar size={24} />}
+                  icon={<FiCalendar size={24} color="#F5F5DC" />} // calendar icon
                   trend="up"
                   change="+8%"
                 />
                 <MetricCard
                   title="Durchschn. Buchungswert"
                   value={`€${analytics.averageBookingValue.toFixed(2)}`}
-                  icon={<FiTrendingUp size={24} />}
+                  icon={<FiTrendingUp size={24} color="#F5F5DC" />} // trending up icon
                   trend="up"
                   change="+5%"
                 />
                 <MetricCard
                   title="Kundenbindung"
                   value={`${analytics.customerRetentionRate.toFixed(1)}%`}
-                  icon={<FiUserCheck size={24} />}
+                  icon={<FiUserCheck size={24} color="#F5F5DC" />} // user check icon
                   trend="neutral"
                 />
               </div>
@@ -531,19 +529,19 @@ function AnalyticsContent() {
                 <MetricCard
                   title="Abschlussrate"
                   value={`${analytics.completionRate.toFixed(1)}%`}
-                  icon={<FiTarget size={24} />}
+                  icon={<FiTarget size={24} color="#F5F5DC" />} // target icon
                   trend={analytics.completionRate > 80 ? "up" : "down"}
                 />
                 <MetricCard
                   title="Stornierungsrate"
                   value={`${analytics.cancellationRate.toFixed(1)}%`}
-                  icon={<FiAlertCircle size={24} />}
+                  icon={<FiAlertCircle size={24} color="#F5F5DC" />} // alert icon
                   trend={analytics.cancellationRate < 10 ? "up" : "down"}
                 />
                 <MetricCard
                   title="No-Show-Rate"
                   value={`${analytics.noShowRate.toFixed(1)}%`}
-                  icon={<FiTrendingDown size={24} />}
+                  icon={<FiTrendingDown size={24} color="#F5F5DC" />} // trending down icon
                   trend={analytics.noShowRate < 5 ? "up" : "down"}
                 />
               </div>

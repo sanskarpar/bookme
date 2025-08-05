@@ -176,33 +176,59 @@ export default function BookingSummaryPage() {
       .filter((emp, index, arr) => emp && arr.findIndex(e => e?.name === emp.name) === index)
   ), [serviceSelections]);
 
+  // Helper to get Date object in German time (Europe/Berlin)
+  function getGermanDate(dateStr: string, timeStr?: string) {
+    // dateStr: 'YYYY-MM-DD', timeStr: 'HH:mm'
+    const [year, month, day] = dateStr.split('-').map(Number);
+    let date = new Date(Date.UTC(year, month - 1, day));
+    if (timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      date.setUTCHours(h - getGermanTimezoneOffset(date), m, 0, 0);
+    }
+    return date;
+  }
+
+  // Helper to get the timezone offset in hours for Europe/Berlin
+  function getGermanTimezoneOffset(date: Date) {
+    // Europe/Berlin is UTC+1 or UTC+2 (DST)
+    // Use Intl.DateTimeFormat to get offset
+    const options = { timeZone: 'Europe/Berlin', hour: '2-digit' } as const;
+    const localHour = Number(date.toLocaleString('de-DE', options));
+    const utcHour = date.getUTCHours();
+    let offset = localHour - utcHour;
+    // Adjust for day wrap
+    if (offset < -12) offset += 24;
+    if (offset > 12) offset -= 24;
+    return offset;
+  }
+
   // For date availability, check if any of the selected employees is available
   function isDateAvailable(date: Date) {
     if (!salon || selectedEmployees.length === 0) return false;
-    
+
     // Use YYYY-MM-DD format without timezone conversion
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const dateStr = `${year}-${month}-${day}`;
-    
-    const dayName = date.toLocaleDateString('de-DE', { weekday: 'long' });
-    
+
+    const dayName = date.toLocaleDateString('de-DE', { weekday: 'long', timeZone: 'Europe/Berlin' });
+
     // Fix: Allow booking for today and future dates
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset time to start of day
+    // Use German time for today
+    const berlinNow = new Date(today.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+    berlinNow.setHours(0, 0, 0, 0);
     const checkDate = new Date(date);
-    checkDate.setHours(0, 0, 0, 0); // Reset time to start of day
-    
+    checkDate.setHours(0, 0, 0, 0);
+
     // Only block past dates (before today)
-    if (checkDate < today) return false;
-    
+    if (checkDate < berlinNow) return false;
+
     // Check salon holidays
     if (salon.holidays?.includes(dateStr)) return false;
-    
     // Check if salon is open that day
     if (!salon.workingDays?.[dayName]?.open) return false;
-    
     // Check if at least one selected employee is available
     return selectedEmployees.some(employee => {
       // Check employee holidays
@@ -284,12 +310,13 @@ export default function BookingSummaryPage() {
   // Check if a time slot can accommodate all services with optimal employee scheduling
   function canScheduleServices(startTime: string): boolean {
     if (selectedEmployees.length === 0) return false;
-    
+
     // Create date object from selectedDate string to get the day name
     const [year, month, day] = selectedDate.split('-').map(Number);
-    const dateObj = new Date(year, month - 1, day);
-    const dayName = dateObj.toLocaleDateString('de-DE', { weekday: 'long' });
-    
+    // Use German time for day name
+    const dateObj = new Date(Date.UTC(year, month - 1, day));
+    const dayName = dateObj.toLocaleDateString('de-DE', { weekday: 'long', timeZone: 'Europe/Berlin' });
+
     const requestedStartTime = timeToMinutes(startTime);
     
     // For each service, check if it can be scheduled at the exact requested time
@@ -348,8 +375,9 @@ export default function BookingSummaryPage() {
 
     // Create date object from selectedDate string to get the day name
     const [year, month, day] = selectedDate.split('-').map(Number);
-    const dateObj = new Date(year, month - 1, day);
-    const dayName = dateObj.toLocaleDateString('de-DE', { weekday: 'long' });
+    // Use German time for day name
+    const dateObj = new Date(Date.UTC(year, month - 1, day));
+    const dayName = dateObj.toLocaleDateString('de-DE', { weekday: 'long', timeZone: 'Europe/Berlin' });
     
     // Find the earliest start time among all selected employees
     const earliestStart = selectedEmployees.reduce((earliest, employee) => {
@@ -379,13 +407,15 @@ export default function BookingSummaryPage() {
     // Get current time in minutes if booking for today
     let minTimeMinutes = earliestStart;
     const today = new Date();
+    // Use German time for today
+    const berlinNow = new Date(today.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
     const [selYear, selMonth, selDay] = selectedDate.split('-').map(Number);
     if (
-      today.getFullYear() === selYear &&
-      today.getMonth() + 1 === selMonth &&
-      today.getDate() === selDay
+      berlinNow.getFullYear() === selYear &&
+      berlinNow.getMonth() + 1 === selMonth &&
+      berlinNow.getDate() === selDay
     ) {
-      minTimeMinutes = Math.max(minTimeMinutes, today.getHours() * 60 + today.getMinutes());
+      minTimeMinutes = Math.max(minTimeMinutes, berlinNow.getHours() * 60 + berlinNow.getMinutes());
     }
 
     // Generate slots every 30 minutes
@@ -505,11 +535,15 @@ export default function BookingSummaryPage() {
 
   // Calendar functions
   function getDaysInMonth(date: Date) {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    // Use German time for month calculation
+    const berlinDate = new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+    return new Date(berlinDate.getFullYear(), berlinDate.getMonth() + 1, 0).getDate();
   }
 
   function getFirstDayOfMonth(date: Date) {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+    // Use German time for first day calculation
+    const berlinDate = new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+    return new Date(berlinDate.getFullYear(), berlinDate.getMonth(), 1).getDay();
   }
 
   function timeToMinutes(time: string) {
@@ -775,7 +809,8 @@ export default function BookingSummaryPage() {
                 )}
               </div>
             </div>
-            <div className="flex justify-between mt-8">
+            {/* Buttons: make mobile friendly */}
+            <div className="flex flex-col sm:flex-row justify-between mt-8 gap-3 sm:gap-0">
               <button
                 className="bg-gray-200 text-gray-700 px-6 py-3 text-sm font-medium hover:bg-gray-300 transition-colors"
                 style={{ borderRadius: '0.5rem' }}
@@ -813,19 +848,24 @@ export default function BookingSummaryPage() {
                       <span className="text-sm text-gray-700">
                         {selectedDate && (() => {
                           const [year, month, day] = selectedDate.split('-').map(Number);
-                          const dateObj = new Date(year, month - 1, day);
+                          // Use German time for display
+                          const dateObj = new Date(Date.UTC(year, month - 1, day));
                           return dateObj.toLocaleDateString('de-DE', { 
                             weekday: 'long', 
                             year: 'numeric', 
                             month: 'long', 
-                            day: 'numeric' 
+                            day: 'numeric',
+                            timeZone: 'Europe/Berlin'
                           });
                         })()}
                       </span>
                     </div>
                     <div className="flex items-start gap-3">
                       <FiClock className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-gray-700">{selectedTime} ({totalDuration} Minuten gesamt)</span>
+                      <span className="text-sm text-gray-700">
+                        {/* Show selectedTime in German time */}
+                        {selectedTime} ({totalDuration} Minuten gesamt)
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -873,7 +913,7 @@ export default function BookingSummaryPage() {
                   {/* Customer Info Fields */}
                   <div className="border-t border-gray-200 pt-4 space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ihr Name*</label>
+                      {/* Removed label for name */}
                       <input
                         type="text"
                         value={customerName}
@@ -885,7 +925,7 @@ export default function BookingSummaryPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Telefonnummer*</label>
+                      {/* Removed label for phone */}
                       <input
                         type="tel"
                         value={customerPhone}
@@ -998,8 +1038,9 @@ export default function BookingSummaryPage() {
                 <p><strong>Salon:</strong> {salon.name}</p>
                 <p><strong>Datum & Uhrzeit:</strong> {selectedDate && (() => {
                   const [year, month, day] = selectedDate.split('-').map(Number);
-                  const dateObj = new Date(year, month - 1, day);
-                  return dateObj.toLocaleDateString('de-DE');
+                  // Use German time for display
+                  const dateObj = new Date(Date.UTC(year, month - 1, day));
+                  return dateObj.toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin' });
                 })()} um {selectedTime}</p>
                 <p><strong>Dienstleistungen:</strong> {serviceSelections.map(sel => `${sel.service.name} (${sel.employee?.name})`).join(', ')}</p>
                 <p><strong>Gesamt:</strong> €{total}</p>

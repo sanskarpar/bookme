@@ -472,7 +472,7 @@ export default function EmployeePage() {
               <p className="text-2xl font-bold text-red-600">{employeeStats.withoutServices}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-600 mb-1">Mit Bild</h3>
+              <h3 className="text-sm font-medium text-gray-600 mb-1">Vollständiges Profil</h3>
               <p className="text-2xl font-bold text-black">{employeeStats.withImage}</p>
             </div>
           </div>
