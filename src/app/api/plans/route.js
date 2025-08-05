@@ -3,6 +3,13 @@ import { MongoClient, ObjectId } from 'mongodb';
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri);
 
+function jsonResponse(data, options = {}) {
+  return new Response(JSON.stringify(data), {
+    status: options.status || 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 export async function GET() {
   try {
     await client.connect();
@@ -57,13 +64,13 @@ export async function GET() {
       ];
       
       await plansCollection.insertMany(defaultPlans);
-      return Response.json({ success: true, plans: defaultPlans });
+      return jsonResponse({ success: true, plans: defaultPlans });
     }
     
-    return Response.json({ success: true, plans });
+    return jsonResponse({ success: true, plans });
   } catch (error) {
     console.error('Error fetching plans:', error);
-    return Response.json({ error: 'Failed to fetch plans' }, { status: 500 });
+    return jsonResponse({ error: 'Failed to fetch plans' }, { status: 500 });
   } finally {
     await client.close();
   }
@@ -74,7 +81,7 @@ export async function POST(request) {
     const { name, price, description, features, order } = await request.json();
     
     if (!name || price === undefined) {
-      return Response.json({ error: 'Name and price are required' }, { status: 400 });
+      return jsonResponse({ error: 'Name and price are required' }, { status: 400 });
     }
     
     await client.connect();
@@ -94,10 +101,10 @@ export async function POST(request) {
     
     const result = await plansCollection.insertOne(newPlan);
     
-    return Response.json({ success: true, plan: { ...newPlan, _id: result.insertedId } });
+    return jsonResponse({ success: true, plan: { ...newPlan, _id: result.insertedId } });
   } catch (error) {
     console.error('Error creating plan:', error);
-    return Response.json({ error: 'Failed to create plan' }, { status: 500 });
+    return jsonResponse({ error: 'Failed to create plan' }, { status: 500 });
   } finally {
     await client.close();
   }
@@ -108,7 +115,7 @@ export async function PUT(request) {
     const { _id, name, price, description, features, order, active } = await request.json();
     
     if (!_id) {
-      return Response.json({ error: 'Plan ID is required' }, { status: 400 });
+      return jsonResponse({ error: 'Plan ID is required' }, { status: 400 });
     }
     
     await client.connect();
@@ -135,13 +142,13 @@ export async function PUT(request) {
     );
     
     if (result.matchedCount === 0) {
-      return Response.json({ error: 'Plan not found' }, { status: 404 });
+      return jsonResponse({ error: 'Plan not found' }, { status: 404 });
     }
     
-    return Response.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     console.error('Error updating plan:', error);
-    return Response.json({ error: 'Failed to update plan' }, { status: 500 });
+    return jsonResponse({ error: 'Failed to update plan' }, { status: 500 });
   } finally {
     await client.close();
   }
@@ -152,7 +159,7 @@ export async function DELETE(request) {
     const { _id } = await request.json();
     
     if (!_id) {
-      return Response.json({ error: 'Plan ID is required' }, { status: 400 });
+      return jsonResponse({ error: 'Plan ID is required' }, { status: 400 });
     }
     
     await client.connect();
@@ -162,13 +169,13 @@ export async function DELETE(request) {
     const result = await plansCollection.deleteOne({ _id: new ObjectId(_id) });
     
     if (result.deletedCount === 0) {
-      return Response.json({ error: 'Plan not found' }, { status: 404 });
+      return jsonResponse({ error: 'Plan not found' }, { status: 404 });
     }
     
-    return Response.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     console.error('Error deleting plan:', error);
-    return Response.json({ error: 'Failed to delete plan' }, { status: 500 });
+    return jsonResponse({ error: 'Failed to delete plan' }, { status: 500 });
   } finally {
     await client.close();
   }
