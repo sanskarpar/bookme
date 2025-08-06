@@ -129,9 +129,9 @@ export default function BookingsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed': return '#22c55e';
+      case 'confirmed': return '#9DBE8D'; // changed from #22c55e to #9DBE8D
       case 'cancelled': return '#ef4444';
-      case 'completed': return '#3b82f6';
+      case 'completed': return '#659ffdff';
       default: return '#6b7280';
     }
   };

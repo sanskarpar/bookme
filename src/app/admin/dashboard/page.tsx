@@ -328,7 +328,7 @@ export default function SalonDashboard() {
         });
         const popularService = Object.keys(serviceCount).length > 0
           ? Object.keys(serviceCount).reduce((a, b) => serviceCount[a] > serviceCount[b] ? a : b)
-          : 'Noch keine Dienstleistungen';
+          : 'Keine Dienstleistungen';
 
         setStats([
           {

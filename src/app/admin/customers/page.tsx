@@ -500,12 +500,13 @@ export default function CustomersPage() {
                   </button>
                 </div>
               </div>
-              <button
+                <button
                 onClick={exportToCSV}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium flex items-center gap-2"
-              >
-                📊 CSV Export
-              </button>
+                className="hover:bg-[#8db87a] text-white px-4 py-2 rounded-md font-medium flex items-center gap-2"
+                style={{ backgroundColor: "#8fcc70ff" }}
+                >
+                CSV Export
+                </button>
             </div>
           </div>
 

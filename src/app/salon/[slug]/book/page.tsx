@@ -567,7 +567,7 @@ export default function BookingSummaryPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-white">
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#E4DED5' }}>
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-800 rounded-full animate-spin"></div>
           <p className="text-gray-600 text-sm">Loading booking summary...</p>
@@ -578,7 +578,7 @@ export default function BookingSummaryPage() {
 
   if (!salon || services.length === 0) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-white">
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#E4DED5' }}>
         <div className="text-center max-w-md">
           <h2 className="text-xl font-medium mb-6 text-gray-900">No salon or services selected</h2>
           <button
@@ -593,7 +593,7 @@ export default function BookingSummaryPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen" style={{ backgroundColor: '#fafafaff' }}>
       <div className="max-w-7xl mx-auto py-16 px-6 xl:px-24">
         {/* Header */}
         <div className="text-center mb-12">
@@ -611,10 +611,20 @@ export default function BookingSummaryPage() {
           <div className="flex items-center space-x-4">
             {['professional', 'datetime', 'summary', 'confirmation'].map((stepName, index) => (
               <div key={stepName} className="flex items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step === stepName ? 'bg-black text-white' : 
-                  ['professional', 'datetime', 'summary', 'confirmation'].indexOf(step) > index ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
-                }`}>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    step === stepName
+                      ? 'bg-black text-white'
+                      : ['professional', 'datetime', 'summary', 'confirmation'].indexOf(step) > index
+                        ? 'text-white'
+                        : 'bg-gray-200 text-gray-600'
+                  }`}
+                  style={
+                    ['professional', 'datetime', 'summary', 'confirmation'].indexOf(step) > index
+                      ? { backgroundColor: '#9DBE8D' }
+                      : undefined
+                  }
+                >
                   {index + 1}
                 </div>
                 {index < 3 && <div className="w-8 h-px bg-gray-300 mx-2"></div>}
@@ -1020,7 +1030,10 @@ export default function BookingSummaryPage() {
         {step === 'confirmation' && (
           <div className="max-w-2xl mx-auto text-center">
             <div className="bg-green-50 border border-green-200 rounded-lg p-8">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ backgroundColor: '#9DBE8D' }}
+              >
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>

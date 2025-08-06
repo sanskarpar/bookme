@@ -465,7 +465,7 @@ export default function EmployeePage() {
             </div>
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <h3 className="text-sm font-medium text-gray-600 mb-1">Mit Services</h3>
-              <p className="text-2xl font-bold text-green-600">{employeeStats.withServices}</p>
+              <p className="text-2xl font-bold" style={{ color: "#5C6F68" }}>{employeeStats.withServices}</p>
             </div>
             <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <h3 className="text-sm font-medium text-gray-600 mb-1">Ohne Services</h3>
@@ -784,10 +784,11 @@ export default function EmployeePage() {
             {/* Save Button */}
             <div className="flex justify-end pt-2">
               <button
-                type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow transition min-w-[120px] sm:min-w-[140px]"
+              type="submit"
+              className="hover:bg-[#4e5e57] text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow transition min-w-[120px] sm:min-w-[140px]"
+              style={{ backgroundColor: "#5C6F68" }}
               >
-                Speichern
+              Speichern
               </button>
             </div>
           </form>

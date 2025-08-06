@@ -13,9 +13,9 @@ const COLORS = {
   text: "#1F1F1F",
   highlight: "#9DBE8D",
   background: "#FAFAFA",
-  success: "#4CAF50",
-  warning: "#FF9800",
-  error: "#F44336",
+  success: "#9DBE8D",
+  warning: "#f2bd6eff",
+  error: "#f36a60ff",
 };
 
 const firebaseConfig = {
@@ -283,9 +283,9 @@ export default function AdminBookingsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'confirmed': return '#22c55e';
+      case 'confirmed': return '#9DBE8D';
       case 'cancelled': return '#ef4444';
-      case 'completed': return '#3b82f6';
+      case 'completed': return '#659ffdff';
       case 'no-show': return '#f59e0b';
       default: return '#6b7280';
     }

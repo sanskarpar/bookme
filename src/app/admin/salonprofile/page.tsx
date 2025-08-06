@@ -615,11 +615,11 @@ export default function SalonProfilePage() {
             {/* Save Button */}
             <div className="flex justify-end pt-2">
               <button
-                type="submit"
-                className="bg-green-400 hover:bg-green-500 text-white font-semibold px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow transition min-w-[120px] sm:min-w-[140px]"
-                style={{ color: "#000" }}
+              type="submit"
+              className="hover:bg-green-500 text-white font-semibold px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow transition min-w-[120px] sm:min-w-[140px]"
+              style={{ backgroundColor: "#9DBE8D", color: "#000" }}
               >
-                Speichern
+              Speichern
               </button>
             </div>
           </form>

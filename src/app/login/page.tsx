@@ -211,7 +211,7 @@ export default function LoginPage() {
           }}
           disabled={loading}
         >
-          {loading ? "Verarbeitung..." : "Login"}
+          {loading ? "Login" : "Login"}
         </button>
         <div
           style={{
